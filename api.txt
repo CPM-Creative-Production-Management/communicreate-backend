@@ -10,7 +10,7 @@ GET /employee/:id
 POST /employee/add
 PUT /employee/edit/:id
 DELETE /employee/delete/:id
-GET /employee/list
+GET /employees/
 
 GET /requests/pending
 GET /requests/:id
