@@ -1,0 +1,37 @@
+ -- ADMIN
+/account/login
+/account/logout
+/account/signup
+*** IMPLEMENT JWT AUTHENTICATION ***
+/myinfo/
+
+-- AGENCY
+GET /employee/:id
+POST /employee/add
+PUT /employee/edit/:id
+DELETE /employee/delete/:id
+GET /employee/list
+
+GET /requests/pending
+GET /requests/:id
+GET /requests/accepted
+GET /requests/rejected
+POST /requests/:id/accept
+POST /requests/:id/reject
+
+POST /estimations/add
+GET /estimations/:id
+PUT /estimations/edit/:id
+POST /estimations/reject/:id
+POST /estimations/send/:id
+POST /estimations/:id/comment
+
+-- CLIENT
+
+POST /requests/add
+GET /requests/
+GET /requests/:id
+
+GET /estimations/
+GET /estimations/:id
+POST /estimations/:id/comment
