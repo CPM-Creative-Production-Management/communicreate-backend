@@ -1,6 +1,7 @@
 const sequelize = require('../db/db')
 const { DataTypes } = require("sequelize")
 const User = require('../models/user')(sequelize, DataTypes)
+const jwt = require('jsonwebtoken')
 const Agency = require('../models/agency')
 
 const createUser = async (username, password, type, associatedId) => {
@@ -25,4 +26,22 @@ const createUser = async (username, password, type, associatedId) => {
       }
 }
 
-module.exports = { createUser }
+const decodeToken = (req) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const bearerToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+    // Use the bearer token as needed
+    try {
+        const decodedToken = jwt.verify(bearerToken, 'catto');
+        return decodedToken
+      } catch (error) {
+        console.error('Invalid token:', error.message);
+        res.send('Did not work')
+      }
+  } else {
+    console.log('not a token')
+  }
+}
+
+module.exports = { createUser, decodeToken }
+

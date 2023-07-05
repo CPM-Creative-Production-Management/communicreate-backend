@@ -1,23 +1,28 @@
+***DONE***
+
  -- ADMIN
 /account/login
 /account/logout
 /account/signup
-*** IMPLEMENT JWT AUTHENTICATION ***
 /myinfo/
 
 -- AGENCY
 GET /employee/:id
-POST /employee/add
-PUT /employee/edit/:id
-DELETE /employee/delete/:id
+POST /employee/
+PUT /employee/:id
+DELETE /employee/:id
 GET /employees/
+
 
 GET /requests/pending
 GET /requests/:id
 GET /requests/accepted
-GET /requests/rejected
+GET /requests/finalized
 POST /requests/:id/accept
 POST /requests/:id/reject
+
+
+***TODO***
 
 POST /estimations/add
 GET /estimations/:id

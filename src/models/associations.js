@@ -9,7 +9,7 @@ const Tag = require('./tag')
 const Task = require('./task')
 const TaskTag = require('./tasktag')
 const Review = require('./review')
-
+const ReqAgency = require('./req_agency')
 
 // associations
 
@@ -19,17 +19,27 @@ const Review = require('./review')
 Agency.belongsToMany(Tag, {through: 'AgencyTags'})
 Tag.belongsToMany(Agency, {through: 'AgencyTags'})
 
-// a company can make many requests. a request will be 
-// only made by one company. One to many relationship between
-// Company and Request.
-Company.hasMany(Request)
-Request.belongsTo(Company)
+// an agency can receive many requests. a request can be sent 
+// to many agencies. Many to many relationships between 
+// Agency and Request. Implemented as supermanytomany.
+Agency.belongsToMany(Request, {through: ReqAgency})
+Request.belongsToMany(Agency, {through: ReqAgency})
+Agency.hasMany(ReqAgency)
+ReqAgency.belongsTo(Agency)
+Request.hasMany(ReqAgency)
+ReqAgency.belongsTo(Request)
 
-// an agency can receive many requests. a request will be 
-// sent to only one agency. One to many relationship between
-// Agency and Request.
-Agency.hasMany(Request)
-Request.belongsTo(Agency)
+// a reqagency relationship might have an estimation attached
+// with it. an estimation must be attached to a reqagency
+// relationship.
+ReqAgency.hasOne(Estimation)
+Estimation.belongsTo(ReqAgency)
+
+// a company can make many requests. a request must be made
+// by one company. One to many relationship between 
+// Company and ReqAgency
+Company.hasMany(ReqAgency)
+ReqAgency.belongsTo(Company)
 
 // a request can have many reqtasks. a reqtask will only belong
 // to one request. One to many relationship between
@@ -43,12 +53,6 @@ RequestTask.belongsTo(Request)
 Agency.hasMany(Employee)
 Employee.belongsTo(Agency)
 
-// an agency can have multiple estimations. an estimation will only
-// belong to one agency. One to many relationship between 
-// Agency and Estimation
-Agency.hasMany(Estimation)
-Estimation.belongsTo(Agency)
-
 // an estimation can have many tasks. a task will only belong to 
 // one estimation. One to many relationship between 
 // Estimation and Task
@@ -60,12 +64,6 @@ Task.belongsTo(Estimation)
 //  Estimation and Comment
 Estimation.hasMany(Comment)
 Comment.belongsTo(Estimation)
-
-// a company can receive many estimations. an estimation will only be
-// received by one company. One to many relationship between 
-// Company and Estimation
-Company.hasMany(Estimation)
-Estimation.belongsTo(Company)
 
 // an employee will have many tasks. a task can be delegated to 
 // many employees. Many to many relationship between 
@@ -93,4 +91,4 @@ Review.belongsTo(Agency)
 
 
 
-module.exports = { Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review }
+module.exports = { Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency }
