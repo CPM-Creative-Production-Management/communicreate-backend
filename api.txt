@@ -24,7 +24,7 @@ POST /requests/:id/reject
 
 ***TODO***
 
-POST /estimations/add
+POST /estimation/     # ESTIMATION -> TASK -> EMPLOYEE
 GET /estimations/:id
 PUT /estimations/edit/:id
 POST /estimations/reject/:id

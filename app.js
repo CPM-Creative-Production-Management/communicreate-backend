@@ -13,6 +13,7 @@ const accountRouter = require('./src/routes/account')
 const generalRouter = require('./src/routes/general')
 const employeeRouter = require('./src/routes/employee')
 const requestRouter = require('./src/routes/request')
+const estimationRouter = require('./src/routes/estimation')
 const {Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review} = require('./src/models/associations')
 
 
@@ -31,7 +32,7 @@ app.use('/account', accountRouter)
 app.use('/', generalRouter)
 app.use('/employee', employeeRouter)
 app.use('/request', requestRouter)
-
+app.use('/estimation', estimationRouter)
 
 //Route
 app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -47,7 +48,6 @@ app.listen(process.env.PORT, async () => {
         //     {alter: true}
         // )
         // console.log(typeof(x[0]))
-
         console.log("Database in sync with models. Clear to proceed.")
     }catch(error){
         console.error(`Error: ${error}`)

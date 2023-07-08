@@ -56,7 +56,9 @@ Employee.belongsTo(Agency)
 // an estimation can have many tasks. a task will only belong to 
 // one estimation. One to many relationship between 
 // Estimation and Task
-Estimation.hasMany(Task)
+Estimation.hasMany(Task, {
+    onDelete: 'CASCADE'
+})
 Task.belongsTo(Estimation)
 
 // an estimation can have many comments. a comment will only belong 
