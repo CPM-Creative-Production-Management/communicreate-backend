@@ -3,6 +3,7 @@ const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
 const { Estimation, Task, Employee, ReqAgency } = require('../models/associations')
+const { decode } = require('jsonwebtoken')
 
 router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const body = req.body
@@ -195,6 +196,16 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     })
     
     res.json(update)
+})
+
+router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const id = req.params.id
+    const decodedToken = decodeToken(req)
+    const username = decodedToken.username
+    const comment = await Comment.create({
+        body: req.body.body
+    })
+
 })
 
 module.exports = router

@@ -21,14 +21,14 @@ GET /requests/finalized
 POST /requests/:id/accept
 POST /requests/:id/reject
 
-
-***TODO***
-
 POST /estimation/     # ESTIMATION -> TASK -> EMPLOYEE
 GET /estimations/:id
 PUT /estimations/edit/:id
 POST /estimations/reject/:id
 POST /estimations/send/:id
+
+***TODO***
+
 POST /estimations/:id/comment
 
 -- CLIENT

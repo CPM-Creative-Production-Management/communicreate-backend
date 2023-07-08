@@ -10,7 +10,6 @@ const Task = require('./task')
 const TaskTag = require('./tasktag')
 const Review = require('./review')
 const ReqAgency = require('./req_agency')
-
 // associations
 
 // an agency can have many tags, and a tag can be shared
@@ -66,6 +65,9 @@ Task.belongsTo(Estimation)
 //  Estimation and Comment
 Estimation.hasMany(Comment)
 Comment.belongsTo(Estimation)
+
+// a comment can be made by an user. an user can make many comments. 
+// one to many relationship between user and comment.
 
 // an employee will have many tasks. a task can be delegated to 
 // many employees. Many to many relationship between 

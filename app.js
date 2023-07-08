@@ -16,6 +16,9 @@ const requestRouter = require('./src/routes/request')
 const estimationRouter = require('./src/routes/estimation')
 const {Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review} = require('./src/models/associations')
 
+// define User relationships here
+User.hasMany(Comment)
+Comment.belongsTo(User)
 
 //Initializing express
 const app = express()
