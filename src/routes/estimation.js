@@ -2,7 +2,9 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Estimation, Task, Employee, ReqAgency } = require('../models/associations')
+const { Estimation, Task, Employee, ReqAgency, Comment, User } = require('../models/associations')
+const { DataTypes } = require("sequelize")
+const sequelize = require('../db/db');
 const { decode } = require('jsonwebtoken')
 
 router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
@@ -205,7 +207,25 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
     const comment = await Comment.create({
         body: req.body.body
     })
+    const users = await User.findAll({
+        where: {
+            username: username
+        }
+    })
+    const user = users[0]
+    const estimation = await Estimation.findByPk(id)
+    try {
+        await comment.setUser(user)
+        await estimation.addComment(comment)
+    } catch(err) {
+        console.log(err)
+    }
+    
+    const retEstimation = await Estimation.findByPk(id, {
+        include: Comment
+    })
 
+    res.json(retEstimation)
 })
 
 module.exports = router

@@ -10,7 +10,13 @@ const Task = require('./task')
 const TaskTag = require('./tasktag')
 const Review = require('./review')
 const ReqAgency = require('./req_agency')
+const { DataTypes } = require("sequelize")
+const sequelize = require('../db/db');
+const User = require('../models/user')(sequelize, DataTypes)
 // associations
+
+User.hasMany(Comment)
+Comment.belongsTo(User)
 
 // an agency can have many tags, and a tag can be shared
 // by many agencies. Many to many relationship between
@@ -95,4 +101,4 @@ Review.belongsTo(Agency)
 
 
 
-module.exports = { Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency }
+module.exports = { Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User }

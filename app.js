@@ -4,7 +4,7 @@ const morgan = require('morgan')
 require('dotenv').config()
 const sequelize = require('./src/db/db')
 const { DataTypes, ABSTRACT } = require("sequelize")
-const User = require('./src/models/user')(sequelize, DataTypes)
+// const User = require('./src/models/user')(sequelize, DataTypes)
 const passport = require('passport')
 require('./config/passport')
 const session = require('express-session')
@@ -14,11 +14,7 @@ const generalRouter = require('./src/routes/general')
 const employeeRouter = require('./src/routes/employee')
 const requestRouter = require('./src/routes/request')
 const estimationRouter = require('./src/routes/estimation')
-const {Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review} = require('./src/models/associations')
-
-// define User relationships here
-User.hasMany(Comment)
-Comment.belongsTo(User)
+const {Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review, User} = require('./src/models/associations')
 
 //Initializing express
 const app = express()
@@ -47,9 +43,9 @@ app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
 app.listen(process.env.PORT, async () => {
     console.log(`Example app listening at http://localhost:${process.env.PORT}`)
     try{
-        // await sequelize.sync(
-        //     {alter: true}
-        // )
+        await sequelize.sync(
+            // {alter: true}
+        )
         // console.log(typeof(x[0]))
         console.log("Database in sync with models. Clear to proceed.")
     }catch(error){
