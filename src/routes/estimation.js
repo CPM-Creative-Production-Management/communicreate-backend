@@ -50,7 +50,12 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             }
         }, {
             model: Task,
-            include: Employee
+            joinTableAttributes: [],
+            include: {
+                model: Employee,
+                joinTableAttributes: [],
+
+            }
         }]
     })
     res.json(estimation)
@@ -180,24 +185,142 @@ router.post('/finalize/:id', passport.authenticate('jwt', {session: false}), asy
 })
 
 router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
-    const estimationId = req.params.id;
-    const decodedToken = decodeToken(req)
-    const associatedId = decodedToken.associatedId
-    const updatedEstimation = req.body
-    const estimation = await Estimation.findByPk(estimationId)
-    const reqAgency = await estimation.getReqAgency()
-    if (estimation === null || reqAgency.AgencyId !== associatedId) {
-        res.json({"message": "no such estimation"})
-        return
-    }
-
-    const update = await Estimation.update(updatedEstimation, {
+    // an estimation has many tasks, and those tasks have employees.
+    // at first, get the tasks.
+    const estimationId = req.params.id
+    const basicEstimation = await Estimation.findByPk(estimationId)
+    const {Tasks, ReqAgency, ...receivedBasicEstimation} = req.body
+    // update the basics of the estimation
+    await Estimation.update(receivedBasicEstimation, {
         where: {
             id: estimationId
         }
     })
     
-    res.json(update)
+    const estimation = await Estimation.findByPk(estimationId, {
+        include: {
+            model: Task,
+            include: Employee   
+        }
+    })
+    const receivedTasks = req.body.Tasks
+    const existingTasks = await estimation.getTasks()
+    // delete tasks which are not in receivedTasks
+    const idsToDelete = []
+    existingTasks.map(async task => {
+        if(!receivedTasks.some(rTask => rTask.id === task.id)) {
+            idsToDelete.push(task.id)
+        }
+    })
+    await estimation.removeTasks(idsToDelete)
+    receivedTasks.map(async task => {
+        const taskId = task.id
+        const taskExists = await estimation.hasTask(taskId)
+        if (!taskExists) {
+            // create a task by adding the employees
+            const employeeIds = task.employees
+            // task.employees contains the employee ids as an array
+            // need to add all employees to a nonexisting task
+            const newTask = await Task.create({
+                name: task.name,
+                description: task.description,
+                cost: task.cost
+            })
+
+            // now add the employees to the task
+            employeeIds.map(async employeeId => {
+                const newEmployee = await Employee.findByPk(employeeId)
+                await newTask.addEmployee(newEmployee)
+            })
+
+            // add the task to the estimation
+            await estimation.addTask(newTask)
+        }
+        else {
+            // the task already exists, update initial details of the task
+            const existingTasks = await estimation.getTasks({where: {id: taskId}})
+            const existingTask = existingTasks[0]
+            existingTask.name = task.name
+            existingTask.description = task.description
+            existingTask.cost = task.cost
+            await existingTask.save()
+            // update employees of that task
+            const employeeIds = task.employees
+            employeeIds.map(async id => {
+                const exists = await existingTask.hasEmployee(id)
+                if (!exists) {
+                    // employee is not assigned to this task. assign him now
+                    const employee = await Employee.findByPk(id)
+                    await existingTask.addEmployee(employee)
+                }
+            })
+            const employees = await existingTask.getEmployees()
+            employees.map(async employee => {
+                if (!employeeIds.includes(employee.id)) {
+                    // unassign the employee
+                    await existingTask.removeEmployee(employee)
+                }
+            })
+        }
+    })
+    
+    res.json({"message": `updated ${estimationId}`})
+})
+
+router.post('/:id(\\d+)/addtask', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const estimationId = req.params.id;
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId
+    const task = await Task.create(req.body)
+    const estimation = await Estimation.findByPk(estimationId, {
+        include: {
+            model: ReqAgency,
+            where: {
+                AgencyId: associatedId
+            }
+        }
+    })
+    await estimation.addTask(task)
+    const updatedEstimation = await Estimation.findByPk(estimationId, {
+        include: [{
+            model: ReqAgency,
+            where: {
+                AgencyId: associatedId
+            }
+        }, {
+            model: Task,
+            include: Employee
+        }]
+    })
+    res.json(updatedEstimation)
+})
+
+router.post('/:id(\\d+)/addtask', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const estimationId = req.params.id;
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId
+    const task = await Task.create(req.body)
+    const estimation = await Estimation.findByPk(estimationId, {
+        include: {
+            model: ReqAgency,
+            where: {
+                AgencyId: associatedId
+            }
+        }
+    })
+    await estimation.addTask(task)
+    const updatedEstimation = await Estimation.findByPk(estimationId, {
+        include: [{
+            model: ReqAgency,
+            where: {
+                AgencyId: associatedId
+            }
+        }, {
+            model: Task,
+            include: Employee
+        }]
+    })
+    res.json(updatedEstimation)
 })
 
 router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {

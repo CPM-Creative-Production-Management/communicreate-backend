@@ -2,11 +2,11 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Employee } = require('../models/associations')
+const { Employee, Task } = require('../models/associations')
 
 
 // retrieve employee by id
-router.get('/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {
+router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId;
     const employeeId = req.params.id
@@ -41,6 +41,36 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
     })
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(employee, null, 2))
+})
+
+router.post('/:id(\\d+)/assign', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const employeeId = req.params.id
+    const taskId = req.body.taskId
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const employee = await Employee.findOne({
+        where: {
+            id: employeeId,
+            AgencyId: associatedId
+        }
+    })
+    if (employee === null) {
+        console.log("employee not found")
+        return
+    }
+    const task = await Task.findOne({
+        where: {
+            id: taskId
+        }
+    })
+    await task.addEmployee(employee)
+    const response = await Employee.findOne({
+        where: {
+            id: employeeId
+        }, 
+        include: Task
+    })
+    res.json(response)
 })
 
 router.put('/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {

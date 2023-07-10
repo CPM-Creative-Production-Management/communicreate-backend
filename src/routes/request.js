@@ -74,7 +74,9 @@ router.get('/:id', passport.authenticate('jwt', {session: false}), async (req, r
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId;
     try {
-        const request = await Request.findByPk(id)
+        const request = await Request.findByPk(id, {
+            include: RequestTask
+        })
         res.json(request)
     } catch (err) {
         console.error(err)

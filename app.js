@@ -14,6 +14,8 @@ const generalRouter = require('./src/routes/general')
 const employeeRouter = require('./src/routes/employee')
 const requestRouter = require('./src/routes/request')
 const estimationRouter = require('./src/routes/estimation')
+const agencyRouter = require('./src/routes/agency')
+const companyRouter = require('./src/routes/company')
 const {Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review, User} = require('./src/models/associations')
 
 //Initializing express
@@ -32,6 +34,8 @@ app.use('/', generalRouter)
 app.use('/employee', employeeRouter)
 app.use('/request', requestRouter)
 app.use('/estimation', estimationRouter)
+app.use('/agency', agencyRouter)
+app.use('/company', companyRouter)
 
 //Route
 app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
