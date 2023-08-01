@@ -16,13 +16,15 @@
     "express-session": "^1.17.3",
     "jsonwebtoken": "^9.0.0",
     "morgan": "^1.10.0",
-    "nodemon": "^2.0.22",
+    "nodemon": "^3.0.1",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pg": "^8.11.1",
     "pg-hstore": "^2.3.4",
-    "sequelize": "^6.32.1"
+    "sequelize": "^6.32.1",
+    "sslcommerz-lts": "^1.1.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",

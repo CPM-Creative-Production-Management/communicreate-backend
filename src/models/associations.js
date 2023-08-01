@@ -3,6 +3,7 @@ const Comment = require('./comment')
 const Company = require('./company')
 const Employee = require('./employee')
 const Estimation = require('./estimation')
+const Payment = require('./payment')
 const RequestTask = require('./reqtask')
 const Request = require('./request')
 const Tag = require('./tag')
@@ -99,6 +100,17 @@ Review.belongsTo(Company)
 Agency.hasMany(Review)
 Review.belongsTo(Agency)
 
+// a company can make many transactions. But a transaction will
+// always be made by one company. One to many relationship between
+// Company and Payment.
+Company.hasMany(Payment)
+Payment.belongsTo(Company)
+
+// an agency can recieve many payments. But a transaction will
+// always be made to only one agency. One to many relationship between
+// Agency and Payment.
+Agency.hasMany(Payment)
+Payment.belongsTo(Agency)
 
 
-module.exports = { Agency, Comment, Company, Employee, Estimation, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User }
+module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User }
