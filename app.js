@@ -4,6 +4,7 @@ const morgan = require('morgan')
 require('dotenv').config()
 const sequelize = require('./src/db/db')
 const { DataTypes, ABSTRACT } = require("sequelize")
+const cors = require('cors')
 // const User = require('./src/models/user')(sequelize, DataTypes)
 const passport = require('passport')
 require('./config/passport')
@@ -21,6 +22,8 @@ const {Agency, Comment, Company, Employee, Estimation, Payment, RequestTask, Req
 
 //Initializing express
 const app = express()
+
+app.use(cors())
 
 //Express Middleware
 app.use(bodyParser.json())
