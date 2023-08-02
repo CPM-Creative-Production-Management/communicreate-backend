@@ -16,6 +16,7 @@ const sequelize = require('../db/db');
 const User = require('../models/user')(sequelize, DataTypes)
 // associations
 
+
 User.hasMany(Comment)
 Comment.belongsTo(User)
 
