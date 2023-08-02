@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { TaskTag } = require('../models/associations')
 
-router.post('/create', async (req, res) => {
+router.post('/', async (req, res) => {
     const name = req.body.name
 
     await TaskTag.create({
@@ -17,7 +17,7 @@ router.post('/create', async (req, res) => {
 
 })
 
-router.get('/all', async (req, res) => {
+router.get('/', async (req, res) => {
     const tasktags = await TaskTag.findAll()
     res.json({
         responseCode: 1,

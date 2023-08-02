@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { Tag } = require('../models/associations')
 
-router.post('/create', async (req, res) => {
+router.post('/', async (req, res) => {
     const tag = req.body.tag
 
     await Tag.create({
@@ -17,7 +17,7 @@ router.post('/create', async (req, res) => {
 
 })
 
-router.get('/all', async (req, res) => {
+router.get('/', async (req, res) => {
     const tags = await Tag.findAll()
     res.json({
         responseCode: 1,
