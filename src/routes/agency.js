@@ -9,6 +9,9 @@ router.get('/', async (req, res) => {
     agencies.forEach(agency => {
         agency.dataValues.key = agency.name
         agency.dataValues.text = agency.name
+        agency.dataValues.details = agency.dataValues.description
+        // remove description from dataValues
+        delete agency.dataValues.description
     })
     res.json(agencies)
 })

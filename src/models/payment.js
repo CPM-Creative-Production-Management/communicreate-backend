@@ -22,7 +22,11 @@ const Payment = sequelize.define('Payment', {
     transaction_id: {
         type: DataTypes.TEXT,
         allowNull: false
-    }
+    },
+    status: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
 }, {
     freezeTableName: true,
 })
