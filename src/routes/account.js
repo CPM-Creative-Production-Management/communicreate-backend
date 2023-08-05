@@ -40,15 +40,16 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
     res.json({message: 'Successfully logged out'})
 });
 
-router.post('/signup', (req, res, next) => {
+router.post('/signup', async (req, res, next) => {
     const name = req.body.name
     const email = req.body.email
     const password = req.body.password
     const type = req.body.type
     const associatedId = req.body.associatedId
 
-    const user = User.findOne({where: {email: email}})
+    const user = await User.findOne({where: {email: email}})
     if(user) {
+        console.log(user)
         return res.status(401).json({
             message: 'User already exists'
         })
