@@ -3,6 +3,7 @@ const { DataTypes } = require("sequelize")
 const User = require('../models/user')(sequelize, DataTypes)
 const jwt = require('jsonwebtoken')
 const Agency = require('../models/agency')
+const Company = require('../models/company')
 
 const createUser = async (name, email, password, type, associatedId) => {
     try {
@@ -14,7 +15,13 @@ const createUser = async (name, email, password, type, associatedId) => {
           type: parseInt(type),
         });
         console.log('User created');
-        if (type === 2) {
+        if (type === 1) {
+          console.log('Adding user to company')
+          const company = await Company.findByPk(associatedId)
+          await company.addUser(newUser)
+          console.log('User added to company')
+        }
+        else if (type === 2) {
           console.log('Adding user to agency')
           const agency = await Agency.findByPk(associatedId)
           await agency.addUser(newUser)
