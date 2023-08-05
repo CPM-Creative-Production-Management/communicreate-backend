@@ -6,6 +6,10 @@ const { Agency } = require('../models/associations')
 
 router.get('/', async (req, res) => {
     const agencies = await Agency.findAll()
+    agencies.forEach(agency => {
+        agency.dataValues.key = agency.name
+        agency.dataValues.text = agency.name
+    })
     res.json(agencies)
 })
 
