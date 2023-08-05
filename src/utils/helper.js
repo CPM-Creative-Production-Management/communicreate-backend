@@ -11,7 +11,7 @@ const createUser = async (name, email, password, type, associatedId) => {
           name: name,
           email: email,
           password: password,
-          type: type,
+          type: parseInt(type),
         });
         console.log('User created');
         if (type === 2) {
