@@ -13,6 +13,10 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', { session: false }), async
 
 router.get('/', async (req, res) => {
     const companies = await Company.findAll()
+    companies.forEach(company => {
+        company.dataValues.key = company.name
+        company.dataValues.text = company.name
+    })
     res.json(companies)
 })
 
