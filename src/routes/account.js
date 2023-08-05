@@ -29,11 +29,11 @@ router.post('/login', passport.authenticate('local', { session: false }), (req, 
 });
 
 router.post('/signup', (req, res, next) => {
-    const username = req.body.username
+    const email = req.body.email
     const password = req.body.password
     const type = req.body.type
     const associatedId = req.body.associatedId
-    if(createUser(username, password, type, associatedId)) {
+    if(createUser(email, password, type, associatedId)) {
         return res.status(200).json({
             message: 'User successfully created'
         })
