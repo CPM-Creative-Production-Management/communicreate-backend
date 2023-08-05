@@ -8,6 +8,7 @@ router.get('/', async (req, res) => {
     const agencies = await Agency.findAll()
     agencies.forEach(agency => {
         agency.dataValues.key = agency.name
+        agency.dataValues.value = agency.id
         agency.dataValues.text = agency.name
         agency.dataValues.details = agency.dataValues.description
         // remove description from dataValues
