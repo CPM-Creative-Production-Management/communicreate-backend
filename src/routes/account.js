@@ -41,12 +41,12 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
 });
 
 router.post('/signup', async (req, res, next) => {
+    console.log(req.body)
     const name = req.body.name
     const email = req.body.email
     const password = req.body.password
     const type = req.body.type
     const associatedId = req.body.associatedId
-
     const user = await User.findOne({where: {email: email}})
     if(user) {
         console.log(user)
