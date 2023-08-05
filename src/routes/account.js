@@ -6,7 +6,7 @@ const decodeToken = require('../utils/helper').decodeToken
 const { createUser } = require('../utils/helper')
 const { Agency, Company, User } = require('../models/associations')
 
-router.post('/login', passport.authenticate('local', { session: false }), (req, res) => {
+router.post('/login', passport.authenticate('local', { session: false }), async (req, res) => {
     // Successful authentication
   
     // Create a JWT payload
@@ -19,9 +19,21 @@ router.post('/login', passport.authenticate('local', { session: false }), (req, 
 
     // Generate a JWT with a secret key
     const token = jwt.sign(payload, 'catto');
-  
+    const email = req.user.get('email')
+    // exclude password from user 
+    const user = await User.findOne({where: {email: email}, attributes: {exclude: ['password', 'username', 'id']}})
+    if (user.type === 1) {
+        const company = await Company.findByPk(user.associatedId)
+        user.company = company
+        user.dataValues.association = company
+    } else if (user.type === 2) {
+        const agency = await Agency.findByPk(user.associatedId)
+        user.agency = agency
+        user.dataValues.association = agency
+    }
+
     // Send the JWT to the user
-    res.json({ token });
+    res.json({ token, user });
   });
 
   router.get('/logout', function(req, res, next) {
@@ -29,11 +41,12 @@ router.post('/login', passport.authenticate('local', { session: false }), (req, 
 });
 
 router.post('/signup', (req, res, next) => {
+    const name = req.body.name
     const email = req.body.email
     const password = req.body.password
     const type = req.body.type
     const associatedId = req.body.associatedId
-    if(createUser(email, password, type, associatedId)) {
+    if(createUser(name, email, password, type, associatedId)) {
         return res.status(200).json({
             message: 'User successfully created'
         })

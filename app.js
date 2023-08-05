@@ -56,7 +56,7 @@ app.listen(process.env.PORT, async () => {
     console.log(`Example app listening at http://localhost:${process.env.PORT}`)
     try{
         await sequelize.sync(
-            {alter: true}
+            // {alter: true}
         )
         // console.log(typeof(x[0]))
         console.log("Database in sync with models. Clear to proceed.")
