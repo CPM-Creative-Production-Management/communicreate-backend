@@ -46,6 +46,14 @@ router.post('/signup', (req, res, next) => {
     const password = req.body.password
     const type = req.body.type
     const associatedId = req.body.associatedId
+
+    const user = User.findOne({where: {email: email}})
+    if(user) {
+        return res.status(401).json({
+            message: 'User already exists'
+        })
+    }
+
     if(createUser(name, email, password, type, associatedId)) {
         return res.status(200).json({
             message: 'User successfully created'

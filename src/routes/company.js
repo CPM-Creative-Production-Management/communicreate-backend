@@ -15,6 +15,7 @@ router.get('/', async (req, res) => {
     const companies = await Company.findAll()
     companies.forEach(company => {
         company.dataValues.key = company.name
+        company.dataValues.value = company.id
         company.dataValues.text = company.name
         company.dataValues.details = company.dataValues.description
         // remove description from dataValues
