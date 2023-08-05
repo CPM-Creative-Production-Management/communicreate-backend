@@ -4,11 +4,11 @@ const User = require('../models/user')(sequelize, DataTypes)
 const jwt = require('jsonwebtoken')
 const Agency = require('../models/agency')
 
-const createUser = async (username, password, type, associatedId) => {
+const createUser = async (email, password, type, associatedId) => {
     try {
         console.log(User)
         const newUser = await User.create({
-          username: username,
+          email: email,
           password: password,
           type: type,
         });

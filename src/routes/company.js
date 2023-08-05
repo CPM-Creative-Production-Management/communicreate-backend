@@ -11,7 +11,7 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', { session: false }), async
     res.json(company)
 })
 
-router.get('/', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/', async (req, res) => {
     const companies = await Company.findAll()
     res.json(companies)
 })

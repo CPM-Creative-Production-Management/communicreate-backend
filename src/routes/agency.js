@@ -4,7 +4,7 @@ const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
 const { Agency } = require('../models/associations')
 
-router.get('/', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/', async (req, res) => {
     const agencies = await Agency.findAll()
     res.json(agencies)
 })
