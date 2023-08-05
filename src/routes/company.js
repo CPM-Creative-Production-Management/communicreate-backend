@@ -16,6 +16,9 @@ router.get('/', async (req, res) => {
     companies.forEach(company => {
         company.dataValues.key = company.name
         company.dataValues.text = company.name
+        company.dataValues.details = company.dataValues.description
+        // remove description from dataValues
+        delete company.dataValues.description
     })
     res.json(companies)
 })
