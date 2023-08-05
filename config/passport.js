@@ -13,7 +13,7 @@ opts.secretOrKey = 'catto';
 
 passport.use(new JwtStrategy(opts, async function(jwt_payload, done) {
     try {
-      const user = await User.findOne({where: {username: jwt_payload.username}})
+      const user = await User.findOne({where: {email: jwt_payload.email}})
         if (user) {
             return done(null, user);
         } else {
@@ -27,14 +27,14 @@ passport.use(new JwtStrategy(opts, async function(jwt_payload, done) {
 
 
 passport.use(new LocalStrategy({
-  usernameField: 'username',
+  usernameField: 'email',
   passwordField: 'password'
-},  async function(username, password, done) {
-    console.log(username, password)
+},  async function(email, password, done) {
+    console.log(email, password)
       try{
-        const user = await User.findOne({where: { username: username }})
+        const user = await User.findOne({where: { email: email }})
         if (!user){
-            return done(null, false, { message: 'Incorrect username.' }) 
+            return done(null, false, { message: 'Incorrect email.' }) 
         }
         const passVal = user.validPassword(password)
         if(!passVal){

@@ -22,10 +22,6 @@ const Payment = sequelize.define('Payment', {
     transaction_id: {
         type: DataTypes.TEXT,
         allowNull: false
-    },
-    time: {
-        type: DataTypes.DATE,
-        allowNull: false
     }
 }, {
     freezeTableName: true,
