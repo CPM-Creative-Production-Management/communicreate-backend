@@ -14,7 +14,22 @@ const Company = sequelize.define('Company', {
     },
     description: {
         type: DataTypes.STRING,
-    }
+    },
+    address: {
+        type: DataTypes.STRING,
+    },
+    phone: {
+        type: DataTypes.STRING,
+    },
+    email: {
+        type: DataTypes.STRING,
+    },
+    website: {
+        type: DataTypes.STRING,
+    },
+    logo: {
+        type: DataTypes.STRING,
+    },
 }, {
     freezeTableName: true,
     timestamps: false

@@ -23,10 +23,25 @@ module.exports = function(sequelize, Sequelize) {
         type: {
             type: DataTypes.INTEGER,
             allowNull: true
+        },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        address: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        phone: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     },{
         timestamps: false,
-        
     })
     // a user can either be an agency manager, or a company client
     User.belongsTo(Agency, { foreignKey: 'associatedId', constraints: false });
