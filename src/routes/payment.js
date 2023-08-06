@@ -59,6 +59,15 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
         ship_postcode: 1000,                                // not necessary
         ship_country: 'Bangladesh',                         // not necessary
     };
+    const newPayment = await Payment.create({
+        amount: req.body.amount,
+        currency: req.body.currency,
+        transaction_id: transaction_id,
+        category: req.body.payment_category,                //full_payment or half_payment or emi
+        company_id: req.body.company_id,                    // customer name = company id
+        agency_id: req.body.agency_id,                      // ship name = agency id
+        status: 'pending'                                   // pending or successful or failed
+    });
     const sslcz = new SSLCommerzPayment(
         store_id, 
         store_passwd, 
@@ -72,22 +81,7 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
     });
 })
 
-// post: insert data when the payment was initiated during the above API
-router.post('/initiatePayment', passport.authenticate('jwt', { session: false }), async (req, res) => {
-    console.log('PAYMENT INFO INSERTED AFTER INITIATION')
-    const data = {
-        amount: req.body.amount,
-        currency: req.body.currency,
-        transaction_id: transaction_id,
-        category: req.body.payment_category,                //full_payment or half_payment or emi
-        company_id: req.body.company_id,                    // customer name = company id
-        agency_id: req.body.agency_id,                      // ship name = agency id
-        status: 'pending'
-    }
-})
-
 //sslcommerz validation 
-
 router.get('/validate', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const data = {
         val_id: res.val_id
@@ -95,9 +89,33 @@ router.get('/validate', passport.authenticate('jwt', { session: false }), async 
     const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
     sslcz.validate(data).then(data => {
         //process the response that got from sslcommerz 
-       // https://developer.sslcommerz.com/doc/v4/#order-validation-api
+        // https://developer.sslcommerz.com/doc/v4/#order-validation-api
     });
-}) 
+})
+
+router.post('/success', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const updatedRows = await Payment.update(
+        {
+          status: "successful",
+        },
+        {
+          where: { id: req.body.payment_id },
+        }
+      );
+      console.log(updatedRows);
+})
+
+router.post('/fail', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const updatedRows = await Payment.update(
+        {
+            status: "failed",
+        },
+        {
+            where: { id: req.body.payment_id },
+        }
+    );  
+    console.log(updatedRows);
+})
 
 
 module.exports = router
