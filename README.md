@@ -17,7 +17,4 @@ Backend for Client Production Management.
 
 ## Database
 
-This project uses a Postgres database hosted on an AWS Free Tier RDS system. To monitor the database directly:
-
-1. Install pgadmin4 from https://www.pgadmin.org/download/
-2. In pgadmin4, register a new server. You may request the authors for database credentials.
+This project uses a Postgres database hosted on an AWS Free Tier RDS system. To monitor the database directly, you can use any VSCode extension or a PostgreSQL client such as [pgadmin4](https://www.pgadmin.org/download/). You may request the authors for the credentials.
