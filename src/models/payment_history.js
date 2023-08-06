@@ -18,7 +18,8 @@ const PaymentHistory = sequelize.define('Payment_History', {
     },
     transaction_id: {               //unique transaction id will be different for each installment
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: false,
+        unique: true
     },
     status: {                       //pending, success, fail
         type: DataTypes.TEXT,

@@ -114,10 +114,10 @@ Payment.belongsTo(Company)
 Agency.hasMany(Payment)
 Payment.belongsTo(Agency)
 
-// an estimation can recieve many payments. But a transaction will
-// always be made for only one estimation. One to many relationship between
+// an estimation can recieve only one payment. And a payment will
+// always be made for only one estimation. One to One relationship between
 // Estimation and Payment.
-Estimation.hasMany(Payment)
+Estimation.hasOne(Payment)
 Payment.belongsTo(Estimation)
 
 // a payment can have many payment histories. But a payment history will

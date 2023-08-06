@@ -15,32 +15,34 @@ const passport = require('passport')
 //for payment
 const { randomUUID } = require('crypto');       //for transaction id
 const baseurl = 'cpm-backend.onrender.com'
-const success_url = baseurl+'/dashboard'
-const fail_url = baseurl+'/payment'
-const cancel_url = baseurl+'/payment'
-const ipn_url = baseurl+'/payment/ipn'
+const success_url = baseurl + '/dashboard'
+const fail_url = baseurl + '/payment'
+const cancel_url = baseurl + '/payment'
+const ipn_url = baseurl + '/payment/ipn'
 transaction_id = 0
 valid_id = 0
 payment_category = ''
+emi_installment_choice = 0
 
-router.post('/newPayment', passport.authenticate('jwt', { session: false }), async (req, res) => {
-    if(req.body.emi_option == 0){
+router.post('/new', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    if (req.body.emi_option == 0) {
         payment_category = 'full'
-    } else{
+        emi_installment_choice = 0
+    }
+    else {
         payment_category = 'emi'
+        emi_installment_choice = req.body.emi_installment_choice
     }
     const newPayment = await Payment.create({
         total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
-        amount: req.body.amount,
+        paid_amount: 0,
         currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
-        transaction_id: req.body.transaction_id,
         category: payment_category,                        //full_payment or half_payment or emi
-        emi_installment_choice: req.body.emi_installment_choice,  //if total = 12, then total interest will be fixed for 12 months
-        installment_number: 1,                                    //this is the 1st installment
-        estimation_id: req.body.estimation_id,                    //estimation_id
-        company_id: req.body.company_id,                    // customer name = company id
-        agency_id: req.body.agency_id,                      // ship name = agency id
-        status: 'pending'                                   // pending or successful or failed
+        emi_installment_choice: emi_installment_choice,  //if total = 12, then total interest will be fixed for 12 months
+        installments_completed: 0,
+        EstimationId: req.body.estimation_id,                    //estimation_id
+        CompanyId: req.body.company_id,                    // customer name = company id
+        AgencyId: req.body.agency_id,                      // ship name = agency id
     });
     res.json(newPayment)
 })
@@ -51,9 +53,9 @@ router.post('/init', passport.authenticate('jwt', { session: false }), async (re
     const company = await Company.findByPk(req.body.company_id)
     const company_email = company.email
     const company_phone = company.phone
-    if(req.body.emi_option == 0){
+    if (req.body.emi_option == 0) {
         payment_category = 'full'
-    } else{
+    } else {
         payment_category = 'emi'
     }
     const data = {
@@ -64,7 +66,7 @@ router.post('/init', passport.authenticate('jwt', { session: false }), async (re
         fail_url: fail_url,
         cancel_url: cancel_url,
         ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
-        shipping_method: req.body.payment_method,           // bank or visa_card or bkash or nagad
+        shipping_method: 'OnlinePayment',                   // not necessary
         product_name: req.body.estimation_id,               //estimation_id
         product_category: payment_category,                 //full or emi
         emi_option: req.body.emi_option,                    // 0 for full payment, 1 for emi
@@ -91,8 +93,8 @@ router.post('/init', passport.authenticate('jwt', { session: false }), async (re
         ship_country: 'Bangladesh',                         // not necessary
     };
     const sslcz = new SSLCommerzPayment(
-        store_id, 
-        store_passwd, 
+        store_id,
+        store_passwd,
         is_live)
     sslcz.init(data).then(apiResponse => {
         console.log(apiResponse)
@@ -118,13 +120,13 @@ router.get('/validate', passport.authenticate('jwt', { session: false }), async 
 router.post('/success', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const updatedRows = await Payment.update(
         {
-          status: "successful",
+            status: "successful",
         },
         {
-          where: { id: req.body.payment_id },
+            where: { id: req.body.payment_id },
         }
-      );
-      console.log(updatedRows);
+    );
+    console.log(updatedRows);
 })
 
 router.post('/fail', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -135,7 +137,7 @@ router.post('/fail', passport.authenticate('jwt', { session: false }), async (re
         {
             where: { id: req.body.payment_id },
         }
-    );  
+    );
     console.log(updatedRows);
 })
 
