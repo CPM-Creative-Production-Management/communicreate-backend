@@ -4,6 +4,7 @@ const Company = require('./company')
 const Employee = require('./employee')
 const Estimation = require('./estimation')
 const Payment = require('./payment')
+const PaymentHistory = require('./payment_history')
 const RequestTask = require('./reqtask')
 const Request = require('./request')
 const Tag = require('./tag')
@@ -113,5 +114,17 @@ Payment.belongsTo(Company)
 Agency.hasMany(Payment)
 Payment.belongsTo(Agency)
 
+// an estimation can recieve many payments. But a transaction will
+// always be made for only one estimation. One to many relationship between
+// Estimation and Payment.
+Estimation.hasMany(Payment)
+Payment.belongsTo(Estimation)
 
-module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User }
+// a payment can have many payment histories. But a payment history will
+// always be made for only one payment. One to many relationship between
+// Payment and PaymentHistory.
+Payment.hasMany(PaymentHistory)
+PaymentHistory.belongsTo(Payment)
+
+
+module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User }

@@ -15,31 +15,62 @@ const passport = require('passport')
 //for payment
 const { randomUUID } = require('crypto');       //for transaction id
 const baseurl = 'cpm-backend.onrender.com'
-const success_url = baseurl+'/payment/success'
-const fail_url = baseurl+'/payment/fail'
-const cancel_url = baseurl+'/payment/cancel'
+const success_url = baseurl+'/dashboard'
+const fail_url = baseurl+'/payment'
+const cancel_url = baseurl+'/payment'
 const ipn_url = baseurl+'/payment/ipn'
-const transaction_id = 0
-const valid_id = 0
+transaction_id = 0
+valid_id = 0
+payment_category = ''
+
+router.post('/newPayment', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    if(req.body.emi_option == 0){
+        payment_category = 'full'
+    } else{
+        payment_category = 'emi'
+    }
+    const newPayment = await Payment.create({
+        total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
+        amount: req.body.amount,
+        currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
+        transaction_id: req.body.transaction_id,
+        category: payment_category,                        //full_payment or half_payment or emi
+        emi_installment_choice: req.body.emi_installment_choice,  //if total = 12, then total interest will be fixed for 12 months
+        installment_number: 1,                                    //this is the 1st installment
+        estimation_id: req.body.estimation_id,                    //estimation_id
+        company_id: req.body.company_id,                    // customer name = company id
+        agency_id: req.body.agency_id,                      // ship name = agency id
+        status: 'pending'                                   // pending or successful or failed
+    });
+    res.json(newPayment)
+})
 
 //sslcommerz initialize payment
-router.post('/', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.post('/init', passport.authenticate('jwt', { session: false }), async (req, res) => {
     console.log('API FOUND ')
     const company = await Company.findByPk(req.body.company_id)
     const company_email = company.email
     const company_phone = company.phone
-    transaction_id = randomUUID()
+    if(req.body.emi_option == 0){
+        payment_category = 'full'
+    } else{
+        payment_category = 'emi'
+    }
     const data = {
-        total_amount: req.body.amount,
-        currency: req.body.currency,
-        tran_id: transaction_id,          // create a random unique transaction id for each api call
+        total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
+        currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
+        tran_id: req.body.transaction_id,                //unique transaction id, Unique ID should be generated from frontend
         success_url: success_url,
         fail_url: fail_url,
         cancel_url: cancel_url,
         ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
         shipping_method: req.body.payment_method,           // bank or visa_card or bkash or nagad
-        product_name: req.body.project_name,                //project name
-        product_category: req.body.payment_category,        //full_payment or half_payment or emi
+        product_name: req.body.estimation_id,               //estimation_id
+        product_category: payment_category,                 //full or emi
+        emi_option: req.body.emi_option,                    // 0 for full payment, 1 for emi
+        emi_max_inst_option: 12,                            // Max installments we allow: 3 / 6 / 9 / 12. We are keeping 12 fixed.
+        emi_selected_inst: req.body.emi_installment_choice,      // 3 / 6 / 9 / 12
+        emi_allow_only: 0,     // Value is always 0. If 1 then only EMI is possible, no Mobile banking and internet banking channel will not display. 
         cus_name: req.body.company_id,                      // customer name = company id
         cus_email: company_email,                           // customer email = company email
         cus_phone: company_phone,                           // customer phone = company phone
@@ -59,15 +90,6 @@ router.post('/', passport.authenticate('jwt', { session: false }), async (req, r
         ship_postcode: 1000,                                // not necessary
         ship_country: 'Bangladesh',                         // not necessary
     };
-    const newPayment = await Payment.create({
-        amount: req.body.amount,
-        currency: req.body.currency,
-        transaction_id: transaction_id,
-        category: req.body.payment_category,                //full_payment or half_payment or emi
-        company_id: req.body.company_id,                    // customer name = company id
-        agency_id: req.body.agency_id,                      // ship name = agency id
-        status: 'pending'                                   // pending or successful or failed
-    });
     const sslcz = new SSLCommerzPayment(
         store_id, 
         store_passwd, 
