@@ -14,13 +14,10 @@ const router = express.Router()
 const passport = require('passport')
 
 //for payment
-const { randomUUID } = require('crypto');       //for transaction id
 const baseurl = 'cpm-backend.onrender.com'
 const dues_url = baseurl + '/payment/dues'
-const success_url = baseurl + '/payment/history'
-const fail_url = baseurl + '/payment/history'
-const cancel_url = baseurl + '/payment/history'
-const ipn_url = baseurl + '/payment/ipn'
+const tran_url = baseurl + '/payment/history/'
+const ipn_url = 'https://f4bd-103-60-175-70.ngrok-free.app/' //baseurl + '/payment/ipn'
 transaction_id = 0
 valid_id = 0
 
@@ -45,9 +42,21 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
         EstimationId: req.body.estimation_id,                    //estimation_id
         CompanyId: req.body.company_id,                    // customer name = company id
         AgencyId: req.body.agency_id,                      // ship name = agency id
+    }).then(function(data){
+        res.json({
+            responseCode: 1,
+            responseMessage: 'Success',
+            redirect: dues_url,
+            responseData : data
+        });
+      }).catch(function (err) {
+        error = {
+            responseCode: 0,
+            responseMessage: err.name,
+            responseData: {}
+        };
+        res.json(error)
     });
-    res.json(newPayment)
-    res.redirect(dues_url)
 })
 
 //sslcommerz initialize payment
@@ -85,9 +94,9 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
             total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
             currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
             tran_id: req.body.transaction_id,                //unique transaction id, Unique ID should be generated from frontend
-            success_url: success_url,
-            fail_url: fail_url,
-            cancel_url: cancel_url,
+            success_url: tran_url + payment_id,
+            fail_url: tran_url + payment_id,
+            cancel_url: tran_url + payment_id,
             ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
             shipping_method: 'OnlinePayment',                   // not necessary
             product_name: payment.EstimationId,               //estimation_id
@@ -151,15 +160,53 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
 })
 
 //sslcommerz validation 
-router.get('/validate', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/:id(\\d+)/validate', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    response = ''
     const data = {
-        val_id: res.val_id
+        val_id: req.query.val_id,                // SSLCommerz will send this val_id
+        store_id: store_id,
+        store_passwd: store_passwd
     };
     const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
-    sslcz.validate(data).then(data => {
+    sslcz.validate(data).then(async (response) => {
         //process the response that got from sslcommerz 
+        if(response.status == 'VALID'){
+            
+            // update payment_history table
+            const payment_history = await PaymentHistory.update({ status: "successful" },{
+                where: {
+                    transaction_id: response.tran_id
+                },
+            });
+            const updated_payment_history = await PaymentHistory.findOne(
+            { 
+                where: 
+                { 
+                    transaction_id: response.tran_id
+                },
+            });
+            console.log(updated_payment_history)
+
+            // update payment table
+            const payment = await Payment.findByPk(updated_payment_history.PaymentId)
+            const updated_payment = await Payment.update({
+                paid_amount: payment.paid_amount + updated_payment_history.amount,  
+                installments_completed: payment.installments_completed + 1
+            },{
+                where: {
+                    id: payment.id
+                },
+            });
+            const updated_payment2 = await Payment.findByPk(payment.id)
+            console.log(updated_payment2)
+        }
+        else if(response.status == 'INVALID_TRANSACTION'){
+            console.log('INVALID_TRANSACTION')
+        }
+        res.json(response)
         // https://developer.sslcommerz.com/doc/v4/#order-validation-api
     });
+    
 })
 
 
