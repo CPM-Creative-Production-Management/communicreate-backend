@@ -2,6 +2,7 @@ const express = require('express')
 const { Agency } = require('../models/associations')
 const { Company } = require('../models/associations')
 const { Payment } = require('../models/associations')
+const { PaymentHistory } = require('../models/associations')
 
 //for SSLCOMMERZ
 const SSLCommerzPayment = require('sslcommerz-lts')
@@ -15,16 +16,17 @@ const passport = require('passport')
 //for payment
 const { randomUUID } = require('crypto');       //for transaction id
 const baseurl = 'cpm-backend.onrender.com'
+const dues_url = baseurl + '/payment/dues'
 const success_url = baseurl + '/dashboard'
 const fail_url = baseurl + '/payment'
 const cancel_url = baseurl + '/payment'
 const ipn_url = baseurl + '/payment/ipn'
 transaction_id = 0
 valid_id = 0
-payment_category = ''
-emi_installment_choice = 0
 
 router.post('/new', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    payment_category = ''
+    emi_installment_choice = 0
     if (req.body.emi_option == 0) {
         payment_category = 'full'
         emi_installment_choice = 0
@@ -45,19 +47,34 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
         AgencyId: req.body.agency_id,                      // ship name = agency id
     });
     res.json(newPayment)
+    res.redirect(dues_url)
 })
 
 //sslcommerz initialize payment
-router.post('/init', passport.authenticate('jwt', { session: false }), async (req, res) => {
-    console.log('API FOUND ')
-    const company = await Company.findByPk(req.body.company_id)
+router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    emi_option = 0
+
+    const payment_id = req.params.id
+    const payment = await Payment.findByPk(payment_id)
+    console.log(payment)
+
+    const company = await Company.findByPk(payment.CompanyId)
     const company_email = company.email
     const company_phone = company.phone
-    if (req.body.emi_option == 0) {
-        payment_category = 'full'
-    } else {
-        payment_category = 'emi'
+
+    if (payment.category == 'emi') {
+        emi_option = 1
     }
+
+    //insert into payment_history table
+    const newPaymentHistory = await PaymentHistory.create({
+        PaymentId: payment_id,
+        transaction_id: req.body.transaction_id,
+        amount: req.body.amount,
+        status: 'pending',
+        payment_date: new Date()
+    });
+
     const data = {
         total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
         currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
@@ -67,16 +84,16 @@ router.post('/init', passport.authenticate('jwt', { session: false }), async (re
         cancel_url: cancel_url,
         ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
         shipping_method: 'OnlinePayment',                   // not necessary
-        product_name: req.body.estimation_id,               //estimation_id
-        product_category: payment_category,                 //full or emi
-        emi_option: req.body.emi_option,                    // 0 for full payment, 1 for emi
+        product_name: payment.EstimationId,               //estimation_id
+        product_category: payment.category,                 //full or emi
+        emi_option: emi_option,                    // 0 for full payment, 1 for emi
         emi_max_inst_option: 12,                            // Max installments we allow: 3 / 6 / 9 / 12. We are keeping 12 fixed.
-        emi_selected_inst: req.body.emi_installment_choice,      // 3 / 6 / 9 / 12
+        emi_selected_inst: payment.emi_installment_choice,      // 3 / 6 / 9 / 12
         emi_allow_only: 0,     // Value is always 0. If 1 then only EMI is possible, no Mobile banking and internet banking channel will not display. 
-        cus_name: req.body.company_id,                      // customer name = company id
+        cus_name: payment.CompanyId,                      // customer name = company id
         cus_email: company_email,                           // customer email = company email
         cus_phone: company_phone,                           // customer phone = company phone
-        ship_name: req.body.agency_id,                      // ship name = agency id
+        ship_name: payment.AgencyId,                      // ship name = agency id
         product_profile: 'Creative Content',                // not necessary
         cus_add1: 'Dhaka',                                  // not necessary
         cus_add2: 'Dhaka',                                  // not necessary
