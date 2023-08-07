@@ -24,11 +24,7 @@ const PaymentHistory = sequelize.define('Payment_History', {
     status: {                       //pending, success, fail
         type: DataTypes.TEXT,
         allowNull: false
-    },
-    payment_date: {
-        type: DataTypes.DATE,
-        allowNull: true
-    },
+    }
 }, {
     freezeTableName: true,
 })

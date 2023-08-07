@@ -17,9 +17,9 @@ const passport = require('passport')
 const { randomUUID } = require('crypto');       //for transaction id
 const baseurl = 'cpm-backend.onrender.com'
 const dues_url = baseurl + '/payment/dues'
-const success_url = baseurl + '/dashboard'
-const fail_url = baseurl + '/payment'
-const cancel_url = baseurl + '/payment'
+const success_url = baseurl + '/payment/history'
+const fail_url = baseurl + '/payment/history'
+const cancel_url = baseurl + '/payment/history'
 const ipn_url = baseurl + '/payment/ipn'
 transaction_id = 0
 valid_id = 0
@@ -28,11 +28,11 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
     payment_category = ''
     emi_installment_choice = 0
     if (req.body.emi_option == 0) {
-        payment_category = 'full'
+        payment_category = 'FULL'
         emi_installment_choice = 0
     }
     else {
-        payment_category = 'emi'
+        payment_category = 'EMI'
         emi_installment_choice = req.body.emi_installment_choice
     }
     const newPayment = await Payment.create({
@@ -53,16 +53,15 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
 //sslcommerz initialize payment
 router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }), async (req, res) => {
     emi_option = 0
-
     const payment_id = req.params.id
     const payment = await Payment.findByPk(payment_id)
-    console.log(payment)
+    //console.log(payment)
 
     const company = await Company.findByPk(payment.CompanyId)
     const company_email = company.email
     const company_phone = company.phone
 
-    if (payment.category == 'emi') {
+    if (payment.category == 'EMI') {
         emi_option = 1
     }
 
@@ -71,55 +70,84 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
         PaymentId: payment_id,
         transaction_id: req.body.transaction_id,
         amount: req.body.amount,
-        status: 'pending',
-        payment_date: new Date()
+        status: 'pending'
+    }).catch(function (err) {
+        error = {
+            responseCode: 0,
+            responseMessage: err.name,
+            responseData: {}
+        };
+        res.json(error)
     });
+    console.log(newPaymentHistory)
+    if (newPaymentHistory != undefined) {
+        const data = {
+            total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
+            currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
+            tran_id: req.body.transaction_id,                //unique transaction id, Unique ID should be generated from frontend
+            success_url: success_url,
+            fail_url: fail_url,
+            cancel_url: cancel_url,
+            ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
+            shipping_method: 'OnlinePayment',                   // not necessary
+            product_name: payment.EstimationId,               //estimation_id
+            product_category: payment.category,                 //full or emi
+            emi_option: emi_option,                    // 0 for full payment, 1 for emi
+            emi_max_inst_option: 12,                            // Max installments we allow: 3 / 6 / 9 / 12. We are keeping 12 fixed.
+            emi_selected_inst: payment.emi_installment_choice,      // 3 / 6 / 9 / 12
+            emi_allow_only: 0,     // Value is always 0. If 1 then only EMI is possible, no Mobile banking and internet banking channel will not display. 
+            cus_name: payment.CompanyId,                      // customer name = company id
+            cus_email: company_email,                           // customer email = company email
+            cus_phone: company_phone,                           // customer phone = company phone
+            ship_name: payment.AgencyId,                      // ship name = agency id
+            product_profile: 'Creative Content',                // not necessary
+            cus_add1: 'Dhaka',                                  // not necessary
+            cus_add2: 'Dhaka',                                  // not necessary
+            cus_city: 'Dhaka',                                  // not necessary
+            cus_state: 'Dhaka',                                 // not necessary
+            cus_postcode: 1000,                                 // not necessary
+            cus_country: 'Bangladesh',                          // not necessary
+            cus_fax: 'XXXXXXXXXXX',                             // not necessary
+            ship_add1: 'Dhaka',                                 // not necessary
+            ship_add2: 'Dhaka',                                 // not necessary
+            ship_city: 'Dhaka',                                 // not necessary
+            ship_state: 'Dhaka',                                // not necessary
+            ship_postcode: 1000,                                // not necessary
+            ship_country: 'Bangladesh',                         // not necessary
+        };
+        const sslcz = new SSLCommerzPayment(
+            store_id,
+            store_passwd,
+            is_live)
+        sslcz.init(data).then(apiResponse => {
+            //console.log(apiResponse)
+            // Redirect the user to payment gateway
+            let redirectGatewayURL = apiResponse.redirectGatewayURL
+            res.redirect(redirectGatewayURL)
+            console.log('Redirecting to: ', redirectGatewayURL)
+        });
+    }
+})
 
+router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const id = req.params.id
+    const payment = await Payment.findByPk(id)
+    const payment_history = await PaymentHistory.findAll({
+        where: {
+            PaymentId: id
+        }
+    })
     const data = {
-        total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
-        currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
-        tran_id: req.body.transaction_id,                //unique transaction id, Unique ID should be generated from frontend
-        success_url: success_url,
-        fail_url: fail_url,
-        cancel_url: cancel_url,
-        ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
-        shipping_method: 'OnlinePayment',                   // not necessary
-        product_name: payment.EstimationId,               //estimation_id
-        product_category: payment.category,                 //full or emi
-        emi_option: emi_option,                    // 0 for full payment, 1 for emi
-        emi_max_inst_option: 12,                            // Max installments we allow: 3 / 6 / 9 / 12. We are keeping 12 fixed.
-        emi_selected_inst: payment.emi_installment_choice,      // 3 / 6 / 9 / 12
-        emi_allow_only: 0,     // Value is always 0. If 1 then only EMI is possible, no Mobile banking and internet banking channel will not display. 
-        cus_name: payment.CompanyId,                      // customer name = company id
-        cus_email: company_email,                           // customer email = company email
-        cus_phone: company_phone,                           // customer phone = company phone
-        ship_name: payment.AgencyId,                      // ship name = agency id
-        product_profile: 'Creative Content',                // not necessary
-        cus_add1: 'Dhaka',                                  // not necessary
-        cus_add2: 'Dhaka',                                  // not necessary
-        cus_city: 'Dhaka',                                  // not necessary
-        cus_state: 'Dhaka',                                 // not necessary
-        cus_postcode: 1000,                                 // not necessary
-        cus_country: 'Bangladesh',                          // not necessary
-        cus_fax: 'XXXXXXXXXXX',                             // not necessary
-        ship_add1: 'Dhaka',                                 // not necessary
-        ship_add2: 'Dhaka',                                 // not necessary
-        ship_city: 'Dhaka',                                 // not necessary
-        ship_state: 'Dhaka',                                // not necessary
-        ship_postcode: 1000,                                // not necessary
-        ship_country: 'Bangladesh',                         // not necessary
-    };
-    const sslcz = new SSLCommerzPayment(
-        store_id,
-        store_passwd,
-        is_live)
-    sslcz.init(data).then(apiResponse => {
-        console.log(apiResponse)
-        // Redirect the user to payment gateway
-        let redirectGatewayURL = apiResponse.redirectGatewayURL
-        res.redirect(redirectGatewayURL)
-        console.log('Redirecting to: ', redirectGatewayURL)
-    });
+        payment: payment,
+        dues: payment.total_amount - payment.paid_amount,
+        payment_history: payment_history
+    }
+    const response = {
+        responseCode: 1,
+        responseMessage: 'Success',
+        responseData: data
+    }
+    res.json(response)
 })
 
 //sslcommerz validation 
@@ -134,29 +162,6 @@ router.get('/validate', passport.authenticate('jwt', { session: false }), async 
     });
 })
 
-router.post('/success', passport.authenticate('jwt', { session: false }), async (req, res) => {
-    const updatedRows = await Payment.update(
-        {
-            status: "successful",
-        },
-        {
-            where: { id: req.body.payment_id },
-        }
-    );
-    console.log(updatedRows);
-})
-
-router.post('/fail', passport.authenticate('jwt', { session: false }), async (req, res) => {
-    const updatedRows = await Payment.update(
-        {
-            status: "failed",
-        },
-        {
-            where: { id: req.body.payment_id },
-        }
-    );
-    console.log(updatedRows);
-})
 
 
 module.exports = router
