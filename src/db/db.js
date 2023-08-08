@@ -13,4 +13,6 @@ const sequelize = new Sequelize({
 
 })
 
+console.log('connected')
+
 module.exports = sequelize

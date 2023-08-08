@@ -34,6 +34,9 @@ module.exports = function(sequelize, Sequelize) {
         email: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        profile_picture: {
+            type: DataTypes.STRING,
         }
     },{
         timestamps: false,
