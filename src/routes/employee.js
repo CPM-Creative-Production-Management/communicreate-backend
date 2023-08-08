@@ -39,6 +39,13 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
         salary: salary,
         AgencyId: associatedId
     })
+
+    const id = employee.id
+    const profile_picture = 'https://cpm-backend.s3.amazonaws.com/profile_pictures/employees/' + id + '.jpg'
+    await employee.update({
+        profile_picture: profile_picture
+    })
+    
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(employee, null, 2))
 })
