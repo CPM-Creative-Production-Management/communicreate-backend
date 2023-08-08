@@ -10,6 +10,11 @@ router.get('/employees', passport.authenticate('jwt', { session: false }), async
     const associatedId = decodedToken.associatedId;
     const agency = await Agency.findByPk(associatedId)
     const employeeList = await agency.getEmployees()
+    employeeList.forEach(employee => {
+        employee.dataValues.key = employee.name
+        employee.dataValues.value = employee.id
+        employee.dataValues.text = employee.name   
+    })
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(employeeList, null, 2))
 })

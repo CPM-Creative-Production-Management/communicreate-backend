@@ -22,7 +22,10 @@ const Employee = sequelize.define('Employee', {
     },
     salary: {
         type: DataTypes.FLOAT
-    }
+    },
+    profile_picture: {
+        type: DataTypes.STRING,
+    },
 }, {
     freezeTableName: true,
     timestamps: false
