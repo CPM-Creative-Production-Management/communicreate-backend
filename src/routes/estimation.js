@@ -2,35 +2,52 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Estimation, Task, Employee, ReqAgency, Comment, User } = require('../models/associations')
+const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag } = require('../models/associations')
 const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 const { decode } = require('jsonwebtoken')
 
 router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const body = req.body
-    const estimation = await Estimation.create({
-        is_completed: false,
-        is_rejected: false,
-        cost: body.cost,
-        deadline: body.deadline,
-        ReqAgencyId: body.ReqAgencyId
-    })
-    const tasks = req.body.tasks
-    tasks.map(async (taskObject) => {
-        const employees = taskObject.employees
-        const task = await Task.create({
-            name: taskObject.name,
-            description: taskObject.description,
-            cost: taskObject.cost
+    console.log(body)
+    try {
+        const estimation = await Estimation.create({
+            title: body.title,
+            description: body.description,
+            is_completed: false,
+            is_rejected: false,
+            cost: body.cost,
+            deadline: body.deadline,
+            ReqAgencyId: body.ReqAgencyId
         })
-        employees.map(async (id) => {
-            const employee = await Employee.findByPk(id)
-            await task.addEmployee(employee)
+        const tags = body.tags
+        tags.map(async (id) => {
+            const tag = await Tag.findByPk(id)
+            await estimation.addTag(tag)
         })
-        await estimation.addTask(task)
-    })
-    res.json(estimation)
+        const tasks = req.body.tasks
+        tasks.map(async (taskObject) => {
+            const employees = taskObject.employees
+            const taskTags = taskObject.tags
+            const task = await Task.create({
+                name: taskObject.name,
+                description: taskObject.description,
+                cost: taskObject.cost
+            })
+            employees.map(async (id) => {
+                const employee = await Employee.findByPk(id)
+                await task.addEmployee(employee)
+            })
+            taskTags.map(async (id) => {
+                const tag = await TaskTag.findByPk(id)
+                await task.addTaskTag(tag)
+            })
+            await estimation.addTask(task)
+        })
+        res.status(200).json(estimation)
+    } catch(err) {
+        res.status(500).json(err)
+    }
 })
 
 

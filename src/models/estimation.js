@@ -7,6 +7,12 @@ const Estimation = sequelize.define('Estimation', {
         primaryKey: true,
         autoIncrement: true
     },
+    title: {
+        type: DataTypes.TEXT,
+    },
+    description: {
+        type: DataTypes.TEXT,
+    },
     is_completed: {
         type: DataTypes.BOOLEAN,
         allowNull: false
