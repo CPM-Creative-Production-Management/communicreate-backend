@@ -1,24 +1,28 @@
 const express = require('express')
+const crypto = require("crypto");
+require('dotenv').config({ path: '../../.env' });
 const { Agency } = require('../models/associations')
 const { Company } = require('../models/associations')
 const { Payment } = require('../models/associations')
 const { PaymentHistory } = require('../models/associations')
+const bodyParser = require('body-parser').json()
 
 //for SSLCOMMERZ
-const SSLCommerzPayment = require('sslcommerz-lts')
-const store_id = 'creat64c622e608a36'
-const store_passwd = 'creat64c622e608a36@ssl'
+const SSLCommerzPayment = require('sslcommerz').SslCommerzPayment
+const store_id = process.env.STORE_ID
+const store_passwd = process.env.STORE_PASSWORD
 const is_live = false                           //true for live, false for sandbox
 
 const router = express.Router()
 const passport = require('passport')
 
 //for payment
-const baseurl = 'cpm-backend.onrender.com'
-const dues_url = baseurl + '/payment/dues'
-const tran_url = baseurl + '/payment/history/'
-const ipn_url = 'https://f4bd-103-60-175-70.ngrok-free.app/' //baseurl + '/payment/ipn'
-transaction_id = 0
+const baseurl = 'http://localhost:3000/payment/'                //'cpm-backend.onrender.com/'
+const dues_url = baseurl + 'dues'
+const success_url = baseurl + 'success'
+const fail_url = baseurl + 'failure'
+const cancel_url = baseurl + 'cancel'
+const ipn_url = baseurl + 'ipn'   //baseurl + 'payment/ipn/:id(\\d+)'
 valid_id = 0
 
 router.post('/new', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -42,14 +46,14 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
         EstimationId: req.body.estimation_id,                    //estimation_id
         CompanyId: req.body.company_id,                    // customer name = company id
         AgencyId: req.body.agency_id,                      // ship name = agency id
-    }).then(function(data){
+    }).then(function (data) {
         res.json({
             responseCode: 1,
             responseMessage: 'Success',
             redirect: dues_url,
-            responseData : data
+            responseData: data
         });
-      }).catch(function (err) {
+    }).catch(function (err) {
         error = {
             responseCode: 0,
             responseMessage: err.name,
@@ -61,6 +65,7 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
 
 //sslcommerz initialize payment
 router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const transaction_id = crypto.randomUUID({ disableEntropyCache: true })
     emi_option = 0
     const payment_id = req.params.id
     const payment = await Payment.findByPk(payment_id)
@@ -77,7 +82,7 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     //insert into payment_history table
     const newPaymentHistory = await PaymentHistory.create({
         PaymentId: payment_id,
-        transaction_id: req.body.transaction_id,
+        transaction_id: transaction_id,
         amount: req.body.amount,
         status: 'pending'
     }).catch(function (err) {
@@ -88,15 +93,16 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
         };
         res.json(error)
     });
-    console.log(newPaymentHistory)
-    if (newPaymentHistory != undefined) {
+    //console.log(newPaymentHistory)
+    if (true) {
+        //console.log('Payment History Inserted')
         const data = {
             total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
             currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
-            tran_id: req.body.transaction_id,                //unique transaction id, Unique ID should be generated from frontend
-            success_url: tran_url + payment_id,
-            fail_url: tran_url + payment_id,
-            cancel_url: tran_url + payment_id,
+            tran_id: transaction_id,                //unique transaction id
+            success_url: success_url,
+            fail_url: fail_url,
+            cancel_url: cancel_url,
             ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
             shipping_method: 'OnlinePayment',                   // not necessary
             product_name: payment.EstimationId,               //estimation_id
@@ -131,9 +137,9 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
         sslcz.init(data).then(apiResponse => {
             //console.log(apiResponse)
             // Redirect the user to payment gateway
-            let redirectGatewayURL = apiResponse.redirectGatewayURL
-            res.redirect(redirectGatewayURL)
-            console.log('Redirecting to: ', redirectGatewayURL)
+            let GatewayPageURL = apiResponse.GatewayPageURL
+            console.log('Redirecting to: ', GatewayPageURL)
+            res.status(200).json(GatewayPageURL)
         });
     }
 })
@@ -159,56 +165,122 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
     res.json(response)
 })
 
-//sslcommerz validation 
-router.get('/:id(\\d+)/validate', passport.authenticate('jwt', { session: false }), async (req, res) => {
-    response = ''
-    const data = {
-        val_id: req.query.val_id,                // SSLCommerz will send this val_id
-        store_id: store_id,
-        store_passwd: store_passwd
-    };
-    const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
-    sslcz.validate(data).then(async (response) => {
+
+//sslcommerz success
+router.post('/success', async (req, res) => {
+    const data = req.body;
+    //console.log('Here for data ', data)
+    let responseData = {}
+
+    const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
+    const validation = ssl.validate(data);
+    validation.then(async response => {
+        console.log('Validation checking:');
+        //console.log(response);
         //process the response that got from sslcommerz 
-        if(response.status == 'VALID'){
-            
+        if (response.status == 'VALID') {
+
             // update payment_history table
-            const payment_history = await PaymentHistory.update({ status: "successful" },{
+            const payment_history = await PaymentHistory.update(
+                {
+                    status: "successful"
+                }, {
                 where: {
                     transaction_id: response.tran_id
                 },
             });
             const updated_payment_history = await PaymentHistory.findOne(
-            { 
-                where: 
-                { 
-                    transaction_id: response.tran_id
-                },
-            });
-            console.log(updated_payment_history)
+                {
+                    where:
+                    {
+                        transaction_id: response.tran_id
+                    },
+                });
+            //console.log(updated_payment_history)
 
             // update payment table
             const payment = await Payment.findByPk(updated_payment_history.PaymentId)
             const updated_payment = await Payment.update({
-                paid_amount: payment.paid_amount + updated_payment_history.amount,  
+                paid_amount: payment.paid_amount + updated_payment_history.amount,
                 installments_completed: payment.installments_completed + 1
-            },{
+            }, {
                 where: {
                     id: payment.id
                 },
             });
             const updated_payment2 = await Payment.findByPk(payment.id)
-            console.log(updated_payment2)
+            //console.log(updated_payment2)
+
+            responseData = {
+                payment_history: updated_payment_history,
+                payment: updated_payment2,
+                data: data
+            }
+            res.status(200).json({
+                responseCode: 1,
+                responseMessage: 'Success',
+                responseData: responseData
+            });
         }
-        else if(response.status == 'INVALID_TRANSACTION'){
+        else if (response.status == 'INVALID_TRANSACTION') {
             console.log('INVALID_TRANSACTION')
+            res.status(200).json({
+                responseCode: 0,
+                responseMessage: 'Failure',
+                responseData: responseData
+            });
         }
-        res.json(response)
-        // https://developer.sslcommerz.com/doc/v4/#order-validation-api
+    }).catch(error => {
+        console.log(error);
     });
-    
 })
 
+
+//sslcommerz failure
+router.post('/failure', async (req, res) => {
+    const data = req.body;
+    //console.log('Here for data ', data)
+    let responseData = {}
+
+    const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
+    const validation = ssl.validate(data);
+    validation.then(async response => {
+        //console.log('Validation checking:');
+        //process the response that got from sslcommerz
+        if (response.status == 'INVALID_TRANSACTION') {
+            console.log('INVALID_TRANSACTION')
+
+            // update payment_history table
+            const payment_history = await PaymentHistory.update(
+                {
+                    status: "failed"
+                }, {
+                where: {
+                    transaction_id: data.tran_id
+                },
+            });
+            const updated_payment_history = await PaymentHistory.findOne(
+                {
+                    where:
+                    {
+                        transaction_id: data.tran_id
+                    },
+                });
+            //console.log(updated_payment_history)
+            responseData = {
+                payment_history: updated_payment_history,
+                data: data
+            }
+            return res.status(200).json({
+                responseCode: 1,
+                responseMessage: 'Success',
+                responseData: responseData
+            });
+        }
+    }).catch(error => {
+        console.log(error);
+    });
+})
 
 
 module.exports = router

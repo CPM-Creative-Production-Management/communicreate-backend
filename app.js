@@ -28,7 +28,8 @@ const app = express()
 app.use(cors())
 
 //Express Middleware
-app.use(bodyParser.json())
+app.use(express.json())
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('dev'))
 app.use(session({ secret: 'keyboard cat', resave: true, saveUninitialized:true}));
 app.use(passport.initialize())
@@ -43,7 +44,6 @@ app.use('/estimation', estimationRouter)
 app.use('/agency', agencyRouter)
 app.use('/company', companyRouter)
 app.use('/payment', paymentRouter)
-
 app.use('/tag', tagRouter)
 app.use('/tasktag', taskTagRouter)
 
