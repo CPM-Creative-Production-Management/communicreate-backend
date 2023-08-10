@@ -3,6 +3,7 @@ const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
 const { Company } = require('../models/associations')
+const { Payment } = require('../models/associations')
 
 // get Company by id
 router.get('/:id(\\d+)', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -52,6 +53,28 @@ router.delete('/:id(\\d+)', passport.authenticate('jwt', { session: false }), as
         }
     })
     res.json(message)
+})
+
+// get all dues of a company
+router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const payments = await Payment.findAll({
+        where: {
+            CompanyId: req.params.id
+        }
+    })
+    var paymentJson = payments.map(payment => payment.toJSON());
+    console.log(paymentJson)
+
+    // calculate due amount for each project
+    for(var i = 0; i < paymentJson.length; i++)
+        paymentJson[i].dueAmount = paymentJson[i].total_amount - paymentJson[i].paid_amount
+
+    const response = {
+        responseCode: 1,
+        responseMessage: 'Success',
+        responseData: paymentJson
+    }
+    res.json(response)
 })
 
 module.exports = router
