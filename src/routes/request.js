@@ -144,4 +144,39 @@ router.post('/:id/reject', passport.authenticate('jwt', {session: false}), async
     }
 })
 
+// post a broadcast request
+router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const company = await Company.findByPk(associatedId)
+    // create an object without req.body.tasks
+    const { tasks, ...request } = req.body
+    console.log(request)
+    console.log(tasks)
+    try {
+        const newRequest = await Request.create(request)
+        // add the tasks to the request
+        for (const task of tasks) {
+            const newTask = await RequestTask.create(task)
+            await newRequest.addRequestTask(newTask)
+        }
+        const agencies = await Agency.findAll()
+        for (const agency of agencies) {
+            await agency.addRequest(newRequest)
+            const reqagency = await ReqAgency.findOne({
+                where: {
+                    AgencyId: agency.id,
+                    RequestId: newRequest.id
+                }
+            })
+            await reqagency.setCompany(company)
+        }
+        res.json(newRequest)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json(err)
+    }
+})
+
+
 module.exports = router

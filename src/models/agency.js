@@ -2,7 +2,6 @@ const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 
 const Agency = sequelize.define('Agency', {
-
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
