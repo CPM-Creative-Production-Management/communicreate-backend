@@ -66,8 +66,10 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
     console.log(paymentJson)
 
     // calculate due amount for each project
-    for(var i = 0; i < paymentJson.length; i++)
+    for(var i = 0; i < paymentJson.length; i++){
         paymentJson[i].dueAmount = paymentJson[i].total_amount - paymentJson[i].paid_amount
+        paymentJson[i].remaining_installments = paymentJson[i].emi_installment_choice - paymentJson[i].installments_completed
+    }
 
     const response = {
         responseCode: 1,
