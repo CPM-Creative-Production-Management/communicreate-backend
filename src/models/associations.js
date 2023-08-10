@@ -126,5 +126,9 @@ Payment.belongsTo(Estimation)
 Payment.hasMany(PaymentHistory)
 PaymentHistory.belongsTo(Payment)
 
+// an estimation can have many tags. a tag can be shared by many estimations.
+// Many to many relationship between Estimation and Tag
+Estimation.belongsToMany(Tag, {through: 'EstimationTags'})
+Tag.belongsToMany(Estimation, {through: 'EstimationTags'})
 
 module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User }
