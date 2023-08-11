@@ -71,12 +71,11 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
 // get a particular request
 router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const id = req.params.id
-    const decodedToken = decodeToken(req)
-    const associatedId = decodedToken.associatedId;
     try {
         const request = await Request.findByPk(id, {
             include: RequestTask
         })
+        console.log(request)
         res.json(request)
     } catch (err) {
         console.error(err)
