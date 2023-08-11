@@ -69,7 +69,7 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
 
 
 // get a particular request
-router.get('/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {
+router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const id = req.params.id
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId;
@@ -178,5 +178,37 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
     }
 })
 
+// get all requests of a company
+router.get('/company', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    // will be called by a user
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    try {
+        const requests = await Request.findAll({
+            include: {
+                model: ReqAgency,
+                where: {
+                    CompanyId: associatedId
+                }
+            }    
+        })
+
+        requests.map(req => {
+            let responses = 0
+            req.ReqAgencies.map(reqAgency => {
+                if (reqAgency.accepted) {
+                    responses++
+                }
+            })
+            req.dataValues.responses = responses
+            delete req.dataValues.ReqAgencies
+        })
+
+        res.json(requests)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json(err)
+    }
+})
 
 module.exports = router
