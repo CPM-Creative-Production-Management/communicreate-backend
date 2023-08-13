@@ -75,6 +75,13 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
         const request = await Request.findByPk(id, {
             include: RequestTask
         })
+        const reqAgency = await ReqAgency.findOne({
+            where: {
+                RequestId: id
+            }
+        })
+        const company = await Company.findByPk(reqAgency.CompanyId)
+        request.dataValues.company = company
         console.log(request)
         res.json(request)
     } catch (err) {
