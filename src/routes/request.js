@@ -87,6 +87,7 @@ router.post('/:id/accept', passport.authenticate('jwt', {session: false}), async
     const id = req.params.id
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId;
+    console.log(associatedId)
     try {
         const request = await Request.findByPk(id, {
             include: {
@@ -97,16 +98,22 @@ router.post('/:id/accept', passport.authenticate('jwt', {session: false}), async
                 }
             }
         })
+        if (!request) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
         if (request.ReqAgencies[0] !== null) {
             request.ReqAgencies[0].accepted = true
             request.ReqAgencies[0].save()
             res.json(request)
         }
+        // res.json(request)
         else {
             res.json({ message: "already accepted"})
         }
     } catch (err) {
         console.error(err)
+        res.json(err)
     }
 })
 
