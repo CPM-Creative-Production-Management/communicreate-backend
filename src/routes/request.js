@@ -16,7 +16,7 @@ const requestGetter = async (accepted, finalized, associatedId) => {
                 include: [{
                     model: Request,
                     include: RequestTask
-                }, Company],
+                }, Company, Estimation],
                 // attributes: {
                 //     exclude: ['id', 'accepted', 'finalized', 'ReqAgencyId']
                 // }
@@ -45,9 +45,19 @@ router.get('/accepted', passport.authenticate('jwt', {session: false}), async (r
     const associatedId = decodedToken.associatedId;
     try {
         const agencies = await requestGetter(true, false, associatedId)
+        console.log(agencies)
         if (agencies === null) {
             res.json([])
-        } else {res.json(agencies.ReqAgencies)}
+        } else {
+            agencies.ReqAgencies.map(reqAgency => {
+                if (reqAgency.Estimation) {
+                    reqAgency.dataValues.estimationExists = true
+                } else {
+                    reqAgency.dataValues.estimationExists = false
+                }
+            })
+            res.json(agencies.ReqAgencies)
+        }
     } catch (err) {
         console.error(err)
     }
@@ -61,7 +71,16 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
         const agencies = await requestGetter(true, true, associatedId)
         if (agencies === null) {
             res.json([])
-        } else {res.json(agencies.ReqAgencies)}
+        } else {
+            agencies.ReqAgencies.map(reqAgency => {
+                if (reqAgency.Estimation) {
+                    reqAgency.dataValues.estimationExists = true
+                } else {
+                    reqAgency.dataValues.estimationExists = false
+                }
+            })
+            res.json(agencies.ReqAgencies)
+        }
     } catch (err) {
         console.error(err)
     }
