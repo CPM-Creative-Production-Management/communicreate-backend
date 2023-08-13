@@ -9,6 +9,7 @@ const { decode } = require('jsonwebtoken')
 
 router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const body = req.body
+    console.log(body)
     try {
         const estimation = await Estimation.create({
             title: body.title,
@@ -365,6 +366,16 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
     })
 
     res.json(retEstimation)
+})
+
+router.get('/:id(\\d+)/company', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const estimationId = req.params.id
+    const estimation = await Estimation.findByPk(estimationId, {
+        include: {
+            model: Task
+        }
+    })
+    res.json(estimation)
 })
 
 module.exports = router
