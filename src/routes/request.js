@@ -90,17 +90,22 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
 // get a particular request
 router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const id = req.params.id
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    if (decodedToken.type === 1) return res.status(401).json({message: "unavailable route"})
     try {
         const request = await Request.findByPk(id, {
             include: RequestTask
         })
         const reqAgency = await ReqAgency.findOne({
             where: {
-                RequestId: id
+                RequestId: id,
+                AgencyId: associatedId
             }
         })
         const company = await Company.findByPk(reqAgency.CompanyId)
         request.dataValues.company = company
+        request.dataValues.ReqAgency = reqAgency
         console.log(request)
         res.json(request)
     } catch (err) {
