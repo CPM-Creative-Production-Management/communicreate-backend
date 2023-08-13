@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag } = require('../models/associations')
+const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag, Company, Agency } = require('../models/associations')
 const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 const { decode } = require('jsonwebtoken')
@@ -39,6 +39,7 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
                 const employee = await Employee.findByPk(id)
                 await task.addEmployee(employee)
             })
+
             taskTags.map(async (id) => {
                 const tag = await TaskTag.findByPk(id)
                 await task.addTaskTag(tag)
@@ -56,25 +57,67 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     const estimationId = req.params.id
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId
-    const estimation = await Estimation.findByPk(estimationId, {
-        include: [{
-            model: ReqAgency,
-            where: {
-                AgencyId: associatedId
-            },
-            attributes: {
-                exclude: ['id', 'accepted', 'finalized',]
-            }
-        }, {
-            model: Task,
-            joinTableAttributes: [],
-            include: {
-                model: Employee,
+    let estimation
+    if (decodedToken.type === 1) {
+        estimation = await Estimation.findByPk(estimationId, {
+            include: [{
+                model: ReqAgency,
+                include: Company,
+                where: {
+                    CompanyId: associatedId
+                },
+                attributes: {
+                    exclude: ['id', 'accepted', 'finalized',]
+                }
+            }, {
+                model: Task,
                 joinTableAttributes: [],
-
-            }
-        }]
-    })
+            }, {
+                model: Comment,
+                include: {
+                    model: User,
+                    attributes: ['name', 'email'],
+                    include: [Agency, Company]
+                }
+            }]
+        })
+    } else {
+        console.log('here')
+        estimation = await Estimation.findByPk(estimationId, {
+            include: [{
+                model: ReqAgency,
+                include: Company,
+                where: {
+                    AgencyId: associatedId
+                },
+                attributes: {
+                    exclude: ['id', 'accepted', 'finalized',]
+                }
+            }, {
+                model: Task,
+                joinTableAttributes: [],
+                include: {
+                    model: Employee,
+                    joinTableAttributes: [],
+    
+                }
+            }, {
+                model: Comment,
+                include: {
+                    model: User,
+                    attributes: ['name', 'email'],
+                    include: [Agency, Company]
+                }
+            }]
+        })
+    }
+    if (estimation === null) {
+        return res.status(404).json({message: "not found"})
+    }
+    const reqAgency = await ReqAgency.findByPk(estimation.ReqAgencyId)
+    const request = await reqAgency.getRequest()
+    estimation.dataValues.title = request.name
+    estimation.dataValues.description = request.description
     res.json(estimation)
 })
 
@@ -343,16 +386,15 @@ router.post('/:id(\\d+)/addtask', passport.authenticate('jwt', {session: false})
 router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const id = req.params.id
     const decodedToken = decodeToken(req)
-    const username = decodedToken.username
+    const email = decodedToken.email
     const comment = await Comment.create({
         body: req.body.body
     })
-    const users = await User.findAll({
+    const user = await User.findOne({
         where: {
-            username: username
+            email: email
         }
     })
-    const user = users[0]
     const estimation = await Estimation.findByPk(id)
     try {
         await comment.setUser(user)
@@ -361,21 +403,7 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
         console.log(err)
     }
     
-    const retEstimation = await Estimation.findByPk(id, {
-        include: Comment
-    })
-
-    res.json(retEstimation)
-})
-
-router.get('/:id(\\d+)/company', passport.authenticate('jwt', {session: false}), async (req, res) => {
-    const estimationId = req.params.id
-    const estimation = await Estimation.findByPk(estimationId, {
-        include: {
-            model: Task
-        }
-    })
-    res.json(estimation)
+    res.json({message: 'comment added'})
 })
 
 module.exports = router
