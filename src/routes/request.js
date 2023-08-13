@@ -17,9 +17,9 @@ const requestGetter = async (accepted, finalized, associatedId) => {
                     model: Request,
                     include: RequestTask
                 }, Company],
-                attributes: {
-                    exclude: ['id', 'accepted', 'finalized',]
-                }
+                // attributes: {
+                //     exclude: ['id', 'accepted', 'finalized', 'ReqAgencyId']
+                // }
             }
     ],
     })
