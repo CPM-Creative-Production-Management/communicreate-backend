@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Company } = require('../models/associations')
+const { Company, Agency } = require('../models/associations')
 const { Payment } = require('../models/associations')
 
 // get Company by id
@@ -56,19 +56,37 @@ router.delete('/:id(\\d+)', passport.authenticate('jwt', { session: false }), as
 })
 
 // get all dues of a company
-router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/dues', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    // console.log(associatedId)
+
     const payments = await Payment.findAll({
         where: {
-            CompanyId: req.params.id
+            CompanyId: associatedId
         }
     })
     var paymentJson = payments.map(payment => payment.toJSON());
-    console.log(paymentJson)
-
+    // console.log(paymentJson)
+    const today = new Date()
     // calculate due amount for each project
     for(var i = 0; i < paymentJson.length; i++){
         paymentJson[i].dueAmount = paymentJson[i].total_amount - paymentJson[i].paid_amount
         paymentJson[i].remaining_installments = paymentJson[i].emi_installment_choice - paymentJson[i].installments_completed
+
+        const agency = await Agency.findByPk(paymentJson[i].AgencyId)
+        paymentJson[i].agencyName = agency.name
+
+        console.log(today)
+        console.log(paymentJson[i].updatedAt)
+        var days = Math.floor((today - paymentJson[i].updatedAt) / (1000 * 60 * 60 * 24))
+        if(days > 30){
+            days = days - 30
+            paymentJson[i].days = days + " days overdue"
+        } else {    
+            days = 30 - days
+            paymentJson[i].days = "Next payment due in " + Math.abs(days) + " days"
+        }
     }
 
     const response = {
