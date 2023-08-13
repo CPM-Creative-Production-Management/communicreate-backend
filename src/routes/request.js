@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Agency, Request, ReqAgency, Company, RequestTask } = require('../models/associations')
+const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task } = require('../models/associations')
 
 const requestGetter = async (accepted, finalized, associatedId) => {
     const reply = await Agency.findByPk(associatedId, {
@@ -204,6 +204,41 @@ router.get('/company', passport.authenticate('jwt', {session: false}), async (re
         })
 
         res.json(requests)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json(err)
+    }
+})
+
+// for a particular request of a company
+// get all the agencies that have accepted the request
+router.get('/company/:id(\\d+)/responses', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const id = req.params.id
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    try {
+        const request = await Request.findByPk(id, {
+            include: {
+                model: ReqAgency,
+                where: {
+                    CompanyId: associatedId,
+                    accepted: true
+                },
+                include: Agency
+            }
+        })
+        // async for loop
+        for (const reqAgency of request.ReqAgencies) {
+            const estimation = await reqAgency.getEstimation({
+                include: Task,
+                attributes: ['cost', 'id']
+            })
+            if (estimation) {
+                reqAgency.dataValues.cost = estimation.cost
+                reqAgency.dataValues.estimationId = estimation.id
+            }
+        }
+        res.json(request)
     } catch (err) {
         console.error(err)
         res.status(500).json(err)

@@ -9,7 +9,6 @@ const { decode } = require('jsonwebtoken')
 
 router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const body = req.body
-    console.log(body)
     try {
         const estimation = await Estimation.create({
             title: body.title,
@@ -18,8 +17,9 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             is_rejected: false,
             cost: body.cost,
             deadline: body.deadline,
-            ReqAgencyId: body.ReqAgencyId
         })
+        const reqAgency = await ReqAgency.findByPk(body.ReqAgencyId)
+        await estimation.setReqAgency(reqAgency)
         const tags = body.tags
         tags.map(async (id) => {
             const tag = await Tag.findByPk(id)
@@ -49,7 +49,6 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
         res.status(500).json(err)
     }
 })
-
 
 // find estimation by id
 router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
