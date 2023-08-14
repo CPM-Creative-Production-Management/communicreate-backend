@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag, Company, Agency } = require('../models/associations')
+const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag, Company, Agency, Request } = require('../models/associations')
 const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 const { decode } = require('jsonwebtoken')
@@ -12,12 +12,18 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
     console.log(body)
     try {
         const estimation = await Estimation.create({
-            title: body.title,
-            description: body.description,
             is_completed: false,
             is_rejected: false,
             cost: body.cost,
-            deadline: body.deadline,
+        })
+        const estimations = await Estimation.findAll({
+            where: {
+                ReqAgencyId: body.ReqAgencyId
+            }
+        })
+        // delete existing estimations if any
+        estimations.map(async (estimation) => {
+            await estimation.destroy()
         })
         const reqAgency = await ReqAgency.findByPk(body.ReqAgencyId)
         await estimation.setReqAgency(reqAgency)
@@ -48,6 +54,7 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
         })
         res.status(200).json(estimation)
     } catch(err) {
+        console.log(err)
         res.status(500).json(err)
     }
 })
@@ -96,11 +103,14 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             }, {
                 model: Task,
                 joinTableAttributes: [],
-                include: {
+                include: [{
                     model: Employee,
                     joinTableAttributes: [],
     
-                }
+                }, {
+                    model: TaskTag,
+                    joinTableAttributes: [],
+                }]
             }, {
                 model: Comment,
                 include: {
@@ -108,6 +118,9 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
                     attributes: ['name', 'email'],
                     include: [Agency, Company]
                 }
+            }, {
+                model: Tag,
+                joinTableAttributes: [],
             }]
         })
     }
@@ -119,6 +132,60 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     estimation.dataValues.title = request.name
     estimation.dataValues.description = request.description
     res.json(estimation)
+})
+
+// find estimation by request id
+router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const requestId = req.params.id
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId
+    const agencyId = req.params.aId
+
+    
+    const request = await Request.findByPk(requestId, {
+        include: {
+            model: ReqAgency,
+            where: {
+                AgencyId: agencyId,
+                CompanyId: associatedId
+            }, 
+        }
+    })
+
+    const reqAgency = request.ReqAgencies[0]
+    const e = await Estimation.findOne({
+        where: {
+            ReqAgencyId: reqAgency.id
+        }, include: [{
+            model: ReqAgency,
+            include: Company,
+            where: {
+                CompanyId: associatedId
+            },
+            attributes: {
+                exclude: ['id', 'accepted', 'finalized',]
+            }
+        }, {
+            model: Task,
+            joinTableAttributes: [],
+        }, {
+            model: Comment,
+            include: {
+                model: User,
+                attributes: ['name', 'email'],
+                include: [Agency, Company]
+            }
+        }]
+    })
+
+    let totalCost = 0
+    e.Tasks.map(task => {
+        totalCost += task.cost
+    })
+
+    e.dataValues.extraCost = e.cost - totalCost
+
+    return res.json(e)
 })
 
 // get a list of all rejected estimations

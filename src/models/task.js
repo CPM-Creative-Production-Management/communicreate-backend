@@ -18,6 +18,9 @@ const Task = sequelize.define('Task', {
     cost: {
         type: DataTypes.FLOAT,
         allowNull: false
+    },
+    is_complete: {
+        type: DataTypes.BOOLEAN,
     }
 }, {
     freezeTableName: true,

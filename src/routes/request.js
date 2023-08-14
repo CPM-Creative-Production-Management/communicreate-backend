@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task } = require('../models/associations')
+const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee } = require('../models/associations')
 
 const requestGetter = async (accepted, finalized, associatedId) => {
     const reply = await Agency.findByPk(associatedId, {
@@ -112,11 +112,36 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             where: {
                 RequestId: id,
                 AgencyId: associatedId
+            }, include: {
+                model: Estimation,
+                include: [{
+                    model: Task,
+                    include: [TaskTag, Employee]
+                }, {
+                    model: Tag
+                }]
             }
         })
         const company = await Company.findByPk(reqAgency.CompanyId)
         request.dataValues.company = company
         request.dataValues.ReqAgency = reqAgency
+        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
+        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.map(task => {
+            task.dataValues.tags = task.dataValues.TaskTags
+            delete task.dataValues.TaskTags
+        })
+        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tags = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tags
+        delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tags
+        delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
+
+        let totalCost = 0
+        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.map(task => {
+            totalCost += task.cost
+        })
+        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.extraCost = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.cost - totalCost
+
+        // delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.dataValues.TaskTags
+        // delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
         console.log(request)
         res.json(request)
     } catch (err) {
