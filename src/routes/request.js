@@ -92,7 +92,18 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     const id = req.params.id
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId;
-    if (decodedToken.type === 1) return res.status(401).json({message: "unavailable route"})
+    if (decodedToken.type === 1) {
+        try {
+            const request = await Request.findByPk(id, {
+                include: RequestTask
+            })
+
+            return res.json(request)
+        } catch (err) {
+            console.error(err)
+            return res.json(err)
+        }
+    }
     try {
         const request = await Request.findByPk(id, {
             include: RequestTask
