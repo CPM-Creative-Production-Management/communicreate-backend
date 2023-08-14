@@ -17,12 +17,12 @@ const store_passwd = process.env.STORE_PASSWORD
 const is_live = false                           //true for live, false for sandbox
 
 //for payment
-const baseurl = 'http://localhost:3000/payment/'                //'cpm-backend.onrender.com/'
+const baseurl = 'http://localhost:3002/'        //frontend url should go here
 const dues_url = baseurl + 'dues'
-const success_url = baseurl + 'success'
-const fail_url = baseurl + 'failure'
-const cancel_url = baseurl + 'cancel'
-const ipn_url = baseurl + 'ipn'   //baseurl + 'payment/ipn/:id(\\d+)'
+const success_url = baseurl + 'payment/success'
+const fail_url = baseurl + 'payment/failure'
+const cancel_url = baseurl + 'payment/cancel'
+const ipn_url = baseurl + 'payment/ipn'
 valid_id = 0
 
 router.post('/new', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -75,18 +75,22 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     const company_email = company.email
     const company_phone = company.phone
 
+    var amount = payment.total_amount;
     if (payment.category == 'EMI') {
         emi_option = 1
+        if(payment.installments_completed < payment.emi_installment_choice){
+            var amount = payment.total_amount / payment.emi_installment_choice
+        }
     }
 
     //insert into payment_history table
     const newPaymentHistory = await PaymentHistory.create({
         PaymentId: payment_id,
         transaction_id: transaction_id,
-        amount: req.body.amount,
+        amount: amount,
         status: 'pending'
     }).catch(function (err) {
-        error = {
+        const error = {
             responseCode: 0,
             responseMessage: err.name,
             responseData: {}
@@ -97,7 +101,7 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     if (true) {
         //console.log('Payment History Inserted')
         const data = {
-            total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
+            total_amount: amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
             currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
             tran_id: transaction_id,                //unique transaction id
             success_url: success_url,
@@ -147,22 +151,33 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
 router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const id = req.params.id
     const payment = await Payment.findByPk(id)
+    var paymentJson = payment.toJSON();
+
     const payment_history = await PaymentHistory.findAll({
         where: {
             PaymentId: id
-        }
+        },
+        order: [['updatedAt', 'DESC']]
     })
-    var paymentJson = payment.toJSON();
+    var paymentHistoryJson = payment_history.map(p => p.toJSON());
 
     const estimation = await Estimation.findByPk(paymentJson.EstimationId)
     const reqAgency = await ReqAgency.findByPk(estimation.ReqAgencyId)
     const request = await Request.findByPk(reqAgency.RequestId)
     paymentJson.projectName = request.name
 
+    for(var i=0; i<paymentHistoryJson.length; i++){
+        const date = { day: '2-digit', month: 'long', year: 'numeric' };
+        paymentHistoryJson[i].payment_date = paymentHistoryJson[i].updatedAt.toLocaleDateString('en-US', date);
+
+        const time = { hour12: true, hour: 'numeric', minute: 'numeric', second: 'numeric' };
+        paymentHistoryJson[i].payment_time = paymentHistoryJson[i].updatedAt.toLocaleTimeString('en-US', time);
+    }
+
     const data = {
         payment: paymentJson,
         dues: payment.total_amount - payment.paid_amount,
-        payment_history: payment_history
+        payment_history: paymentHistoryJson
     }
     const response = {
         responseCode: 1,
@@ -223,11 +238,12 @@ router.post('/success', async (req, res) => {
                 payment: updated_payment2,
                 data: data
             }
-            res.status(200).json({
-                responseCode: 1,
-                responseMessage: 'Success',
-                responseData: responseData
-            });
+            res.status(200).redirect(baseurl + 'payment/')
+            // res.status(200).json({
+            //     responseCode: 1,
+            //     responseMessage: 'Success',
+            //     responseData: responseData
+            // });
         }
         else if (response.status == 'INVALID_TRANSACTION') {
             console.log('INVALID_TRANSACTION')
@@ -294,7 +310,12 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
     const payment = await Payment.findByPk(req.params.id)
     var paymentJson = payment.toJSON();
     //console.log(paymentJson)
+
+    const agency = await Agency.findByPk(paymentJson.AgencyId)
+    paymentJson.agencyName = agency.name
+
     paymentJson.dueAmount = paymentJson.total_amount - paymentJson.paid_amount
+    paymentJson.remaining_installments = paymentJson.emi_installment_choice - paymentJson.installments_completed
 
     const response = {
         responseCode: 1,
