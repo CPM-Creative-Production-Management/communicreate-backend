@@ -6,7 +6,7 @@ const { decodeToken } = require('../utils/helper')
 require('dotenv').config({ path: '../../.env' });
 const { Agency } = require('../models/associations')
 const { Company } = require('../models/associations')
-const { Payment } = require('../models/associations')
+const { Payment, Estimation, ReqAgency, Request } = require('../models/associations')
 const { PaymentHistory } = require('../models/associations')
 const bodyParser = require('body-parser').json()
 
@@ -152,8 +152,15 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
             PaymentId: id
         }
     })
+    var paymentJson = payment.toJSON();
+
+    const estimation = await Estimation.findByPk(paymentJson.EstimationId)
+    const reqAgency = await ReqAgency.findByPk(estimation.ReqAgencyId)
+    const request = await Request.findByPk(reqAgency.RequestId)
+    paymentJson.projectName = request.name
+
     const data = {
-        payment: payment,
+        payment: paymentJson,
         dues: payment.total_amount - payment.paid_amount,
         payment_history: payment_history
     }
