@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag, Company, Agency, Request } = require('../models/associations')
+const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag, Company, Agency, Request, Payment } = require('../models/associations')
 const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 const { decode } = require('jsonwebtoken')
@@ -16,15 +16,21 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             is_rejected: false,
             cost: body.cost,
         })
-        const estimations = await Estimation.findAll({
+        const existingEstimation = await Estimation.findOne({
             where: {
                 ReqAgencyId: body.ReqAgencyId
             }
         })
+        
         // delete existing estimations if any
-        estimations.map(async (estimation) => {
-            await estimation.destroy()
-        })
+        let payment
+        if (existingEstimation) {
+            payment = await existingEstimation.getPayment()
+            if (payment)
+                await payment.setEstimation(estimation)
+            await existingEstimation.destroy()
+        }
+
         const reqAgency = await ReqAgency.findByPk(body.ReqAgencyId)
         await estimation.setReqAgency(reqAgency)
         const tags = body.tags
@@ -52,6 +58,10 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             })
             await estimation.addTask(task)
         })
+        if (payment) {
+            payment.total_cost = body.cost
+            await payment.save()
+        }
         res.status(200).json(estimation)
     } catch(err) {
         console.log(err)
@@ -64,6 +74,7 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     const estimationId = req.params.id
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId
+
     let estimation
     if (decodedToken.type === 1) {
         estimation = await Estimation.findByPk(estimationId, {
