@@ -18,12 +18,8 @@ const is_live = false                           //true for live, false for sandb
 
 //for payment
 const baseurl = 'http://localhost:3002/'        //frontend url should go here
-const dues_url = baseurl + 'dues'
 const success_url = baseurl + 'payment/success'
 const fail_url = baseurl + 'payment/failure'
-const cancel_url = baseurl + 'payment/cancel'
-const ipn_url = baseurl + 'payment/ipn'
-valid_id = 0
 
 router.post('/new', passport.authenticate('jwt', { session: false }), async (req, res) => {
     payment_category = ''
@@ -50,7 +46,7 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
         res.json({
             responseCode: 1,
             responseMessage: 'Success',
-            redirect: dues_url,
+            redirect: baseurl + 'payment/' + data.id,
             responseData: data
         });
     }).catch(function (err) {
