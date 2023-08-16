@@ -235,7 +235,7 @@ router.post('/success', async (req, res) => {
                 payment: updated_payment2,
                 data: data
             }
-            res.status(200).redirect(baseurl + 'payment/')
+            res.status(200).redirect(process.env.FRONTEND_URL)
             // res.status(200).json({
             //     responseCode: 1,
             //     responseMessage: 'Success',
