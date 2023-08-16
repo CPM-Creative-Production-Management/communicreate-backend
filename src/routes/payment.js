@@ -17,7 +17,7 @@ const store_passwd = process.env.STORE_PASSWORD
 const is_live = false                           //true for live, false for sandbox
 
 //for payment
-const baseurl = 'http://localhost:3002/'        //frontend url should go here
+const baseurl = process.env.BACKEND_URL        //frontend url should go here
 const success_url = baseurl + 'payment/success'
 const fail_url = baseurl + 'payment/failure'
 
@@ -102,8 +102,8 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
             tran_id: transaction_id,                //unique transaction id
             success_url: success_url,
             fail_url: fail_url,
-            cancel_url: cancel_url,
-            ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
+            cancel_url: success_url,
+            ipn_url: success_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
             shipping_method: 'OnlinePayment',                   // not necessary
             product_name: payment.EstimationId,               //estimation_id
             product_category: payment.category,                 //full or emi
@@ -175,6 +175,7 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
         dues: payment.total_amount - payment.paid_amount,
         payment_history: paymentHistoryJson
     }
+
     const response = {
         responseCode: 1,
         responseMessage: 'Success',

@@ -159,7 +159,7 @@ router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', 
             where: {
                 AgencyId: agencyId,
                 CompanyId: associatedId
-            }, 
+            },
         }
     })
 
@@ -169,13 +169,10 @@ router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', 
             ReqAgencyId: reqAgency.id
         }, include: [{
             model: ReqAgency,
-            include: Company,
+            include: [Agency, Company, Request],
             where: {
                 CompanyId: associatedId
             },
-            attributes: {
-                exclude: ['id', 'accepted', 'finalized',]
-            }
         }, {
             model: Task,
             joinTableAttributes: [],
