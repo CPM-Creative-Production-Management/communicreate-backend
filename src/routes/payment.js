@@ -188,14 +188,15 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
 //sslcommerz success
 router.post('/success', async (req, res) => {
     const data = req.body;
-    //console.log('Here for data ', data)
+    console.log('Here for data ', data)
     let responseData = {}
 
     const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
     const validation = ssl.validate(data);
     validation.then(async response => {
-        console.log('Validation checking:');
-        //console.log(response);
+        // console.log('Validation checking:');
+        // console.log('response:')
+        // console.log(response);
         //process the response that got from sslcommerz 
         if (response.status == 'VALID') {
 
@@ -235,7 +236,8 @@ router.post('/success', async (req, res) => {
                 payment: updated_payment2,
                 data: data
             }
-            res.status(200).redirect(process.env.FRONTEND_URL)
+            console.log('returning to frontend')
+            return res.status(200).redirect(process.env.FRONTEND_URL)
             // res.status(200).json({
             //     responseCode: 1,
             //     responseMessage: 'Success',
@@ -249,6 +251,9 @@ router.post('/success', async (req, res) => {
                 responseMessage: 'Failure',
                 responseData: responseData
             });
+        } else if (response.status == 'VALIDATED') {
+            console.log('validated')
+            return res.status(200).redirect(process.env.FRONTEND_URL)
         }
     }).catch(error => {
         console.log(error);
