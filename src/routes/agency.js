@@ -2,10 +2,12 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Agency } = require('../models/associations')
+const { Agency, Tag } = require('../models/associations')
 
 router.get('/', async (req, res) => {
-    const agencies = await Agency.findAll()
+    const agencies = await Agency.findAll({
+        include: Tag
+    })
     agencies.forEach(agency => {
         agency.dataValues.key = agency.name
         agency.dataValues.value = agency.id
@@ -22,6 +24,19 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', { session: false }), async
     const id = req.params.id
     const agency = await Agency.findByPk(id)
     res.json(agency)
+})
+
+router.put('/:id(\\d+)/settags', async (req, res) => {
+    const id = req.params.id
+    const tags = req.body.tags
+    const agency = await Agency.findByPk(id)
+    await agency.setTags([])
+    for (let i = 0; i < tags.length; i++) {
+        const id = tags[i];
+        const tag = await Tag.findByPk(id)
+        await agency.addTag(tag)
+    }
+    res.status(200).json({message: 'success'})
 })
 
 // post new agency

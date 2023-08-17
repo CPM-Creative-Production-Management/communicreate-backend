@@ -17,7 +17,7 @@ const store_passwd = process.env.STORE_PASSWORD
 const is_live = false                           //true for live, false for sandbox
 
 //for payment
-const baseurl = 'http://localhost:3000/'
+const baseurl = process.env.BACKEND_URL        
 const success_url = baseurl + 'payment/success'
 const fail_url = baseurl + 'payment/failure'
 
@@ -102,8 +102,8 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
             tran_id: transaction_id,                //unique transaction id
             success_url: success_url,
             fail_url: fail_url,
-            cancel_url: fail_url,
-            ipn_url: fail_url,       
+            cancel_url: success_url,
+            ipn_url: success_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
             shipping_method: 'OnlinePayment',                   // not necessary
             product_name: payment.EstimationId,               //estimation_id
             product_category: payment.category,                 //full or emi
@@ -176,6 +176,7 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
         dues: payment.total_amount - payment.paid_amount,
         payment_history: paymentHistoryJson
     }
+
     const response = {
         responseCode: 1,
         responseMessage: 'Success',
@@ -188,14 +189,15 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
 //sslcommerz success
 router.post('/success', async (req, res) => {
     const data = req.body;
-    //console.log('Here for data ', data)
+    console.log('Here for data ', data)
     let responseData = {}
 
     const ssl = new SSLCommerzPayment(store_id, store_passwd, is_live)
     const validation = ssl.validate(data);
     validation.then(async response => {
-        console.log('Validation checking:');
-        //console.log(response);
+        // console.log('Validation checking:');
+        // console.log('response:')
+        // console.log(response);
         //process the response that got from sslcommerz 
         if (response.status == 'VALID') {
 
@@ -235,7 +237,8 @@ router.post('/success', async (req, res) => {
                 payment: updated_payment2,
                 data: data
             }
-            res.status(200).redirect(baseurl + 'payment/')
+            console.log('returning to frontend')
+            return res.status(200).redirect(process.env.FRONTEND_URL)
             // res.status(200).json({
             //     responseCode: 1,
             //     responseMessage: 'Success',
@@ -249,6 +252,9 @@ router.post('/success', async (req, res) => {
                 responseMessage: 'Failure',
                 responseData: responseData
             });
+        } else if (response.status == 'VALIDATED') {
+            console.log('validated')
+            return res.status(200).redirect(process.env.FRONTEND_URL)
         }
     }).catch(error => {
         console.log(error);
