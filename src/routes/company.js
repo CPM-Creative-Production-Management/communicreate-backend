@@ -71,7 +71,7 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
     const today = new Date()
     // calculate due amount for each project
     for (var i = 0; i < paymentJson.length; i++) {
-        paymentJson[i].dueAmount = paymentJson[i].total_amount - paymentJson[i].paid_amount
+        paymentJson[i].dueAmount = (paymentJson[i].total_amount - paymentJson[i].paid_amount).toFixed(2)
         paymentJson[i].remaining_installments = paymentJson[i].emi_installment_choice - paymentJson[i].installments_completed
 
         const agency = await Agency.findByPk(paymentJson[i].AgencyId)
@@ -96,8 +96,9 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
                 paymentJson[i].message = "Dues cleared for this month"
             }
         } else {
+            const months = Math.floor(days / 30)
             paymentJson[i].overdue = 1
-            paymentJson[i].message = days + " days overdue"
+            paymentJson[i].message = months + " months overdue"
         }
 
 

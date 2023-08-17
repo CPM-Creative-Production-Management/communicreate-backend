@@ -17,7 +17,7 @@ const store_passwd = process.env.STORE_PASSWORD
 const is_live = false                           //true for live, false for sandbox
 
 //for payment
-const baseurl = process.env.BACKEND_URL        
+const baseurl = process.env.BACKEND_URL
 const success_url = baseurl + 'payment/success'
 const fail_url = baseurl + 'payment/failure'
 
@@ -74,8 +74,8 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     var amount = payment.total_amount;
     if (payment.category == 'EMI') {
         emi_option = 1
-        if(payment.installments_completed < payment.emi_installment_choice){
-            var amount = (payment.total_amount - payment.paid_amount) / (payment.emi_installment_choice - payment.installments_completed)
+        if (payment.installments_completed < payment.emi_installment_choice) {
+            var amount = ((payment.total_amount - payment.paid_amount) / (payment.emi_installment_choice - payment.installments_completed)).toFixed(2)
         }
     }
 
@@ -154,7 +154,7 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
             PaymentId: id,
             status: ['successful', 'failed']
         },
-        order: [['updatedAt', 'DESC']]
+        order: [['updatedAt', 'ASC']]
     })
     var paymentHistoryJson = payment_history.map(p => p.toJSON());
 
@@ -163,7 +163,7 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
     const request = await Request.findByPk(reqAgency.RequestId)
     paymentJson.projectName = request.name
 
-    for(var i=0; i<paymentHistoryJson.length; i++){
+    for (var i = 0; i < paymentHistoryJson.length; i++) {
         const date = { day: '2-digit', month: 'long', year: 'numeric' };
         paymentHistoryJson[i].payment_date = paymentHistoryJson[i].updatedAt.toLocaleDateString('en-US', date);
 
@@ -238,7 +238,7 @@ router.post('/success', async (req, res) => {
                 data: data
             }
             console.log('returning to frontend')
-            return res.status(200).redirect(process.env.FRONTEND_URL)
+            return res.status(200).redirect(process.env.FRONTEND_URL + 'payment/' + payment.id)
             // res.status(200).json({
             //     responseCode: 1,
             //     responseMessage: 'Success',
@@ -297,11 +297,16 @@ router.post('/failure', async (req, res) => {
                 payment_history: updated_payment_history,
                 data: data
             }
-            return res.status(200).json({
-                responseCode: 1,
-                responseMessage: 'Success',
-                responseData: responseData
-            });
+            console.log('returning to frontend')
+            return res.status(200).redirect(process.env.FRONTEND_URL)
+            // return res.status(200).json({
+            //     responseCode: 1,
+            //     responseMessage: 'Success',
+            //     responseData: responseData
+            // });
+        } else if (response.status == 'VALIDATED') {
+            console.log('validated')
+            return res.status(200).redirect(process.env.FRONTEND_URL)
         }
     }).catch(error => {
         console.log(error);
@@ -317,8 +322,40 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
     const agency = await Agency.findByPk(paymentJson.AgencyId)
     paymentJson.agencyName = agency.name
 
-    paymentJson.dueAmount = paymentJson.total_amount - paymentJson.paid_amount
+    paymentJson.dueAmount = (paymentJson.total_amount - paymentJson.paid_amount).toFixed(2)
     paymentJson.remaining_installments = paymentJson.emi_installment_choice - paymentJson.installments_completed
+
+    const today = new Date()
+    const isPaidAfterCreated = Math.floor((paymentJson.updatedAt - paymentJson.createdAt) / (1000 * 60 * 60 * 24))
+    var days = Math.floor((today - paymentJson.updatedAt) / (1000 * 60 * 60 * 24))
+
+    if (days >= 0 && days < 30) {
+        if (isPaidAfterCreated == 0) {
+            paymentJson.overdue = 1
+            paymentJson.message = days + " days overdue"
+            if (paymentJson.remaining_installments > 0) {
+                paymentJson.due_to_pay_now = (paymentJson.dueAmount / paymentJson.remaining_installments).toFixed(2)
+            }
+        } else if (paymentJson.dueAmount == 0) {
+            paymentJson.overdue = 2
+            paymentJson.message = "Full Payment Done"
+            paymentJson.due_to_pay_now = 0
+        }
+        else {
+            paymentJson.overdue = 0
+            paymentJson.message = "Dues cleared for this month"
+            paymentJson.due_to_pay_now = 0
+        }
+    } else {
+        const months = Math.floor(days / 30)
+        paymentJson.overdue = 1
+        paymentJson.message = months + " months overdue"
+        if (paymentJson.remaining_installments > 0 && months > 0) {
+            paymentJson.due_to_pay_now = months * (paymentJson.dueAmount / paymentJson.remaining_installments).toFixed(2)
+        }
+    }
+
+
 
     const response = {
         responseCode: 1,
