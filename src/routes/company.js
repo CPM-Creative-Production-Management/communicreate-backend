@@ -79,14 +79,27 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
 
         console.log(today)
         console.log(paymentJson[i].updatedAt)
+
+        const isPaidAfterCreated = Math.floor((paymentJson[i].updatedAt - paymentJson[i].createdAt) / (1000 * 60 * 60 * 24))
         var days = Math.floor((today - paymentJson[i].updatedAt) / (1000 * 60 * 60 * 24))
-        if (days > 30) {
-            days = days - 30
-            paymentJson[i].days = days + " days overdue"
+
+        if (days >= 0 && days < 30) {
+            if (isPaidAfterCreated == 0){
+                paymentJson[i].overdue = 1
+                paymentJson[i].message = days + " days overdue"
+            } else if(paymentJson[i].dueAmount == 0){
+                paymentJson[i].overdue = 2
+                paymentJson[i].message = "Full Payment Done"
+            }
+            else{
+                paymentJson[i].overdue = 0
+                paymentJson[i].message = "Dues cleared for this month"
+            }
         } else {
-            days = 30 - days
-            paymentJson[i].days = "Next payment due in " + Math.abs(days) + " days"
+            paymentJson[i].overdue = 1
+            paymentJson[i].message = days + " days overdue"
         }
+
 
         const estimation = await Estimation.findByPk(paymentJson[i].EstimationId)
         const reqAgency = await ReqAgency.findByPk(estimation.ReqAgencyId)

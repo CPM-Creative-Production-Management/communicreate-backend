@@ -17,7 +17,7 @@ const store_passwd = process.env.STORE_PASSWORD
 const is_live = false                           //true for live, false for sandbox
 
 //for payment
-const baseurl = 'http://localhost:3002/'        //frontend url should go here
+const baseurl = 'http://localhost:3000/'
 const success_url = baseurl + 'payment/success'
 const fail_url = baseurl + 'payment/failure'
 
@@ -75,7 +75,7 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     if (payment.category == 'EMI') {
         emi_option = 1
         if(payment.installments_completed < payment.emi_installment_choice){
-            var amount = payment.total_amount / payment.emi_installment_choice
+            var amount = (payment.total_amount - payment.paid_amount) / (payment.emi_installment_choice - payment.installments_completed)
         }
     }
 
@@ -102,8 +102,8 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
             tran_id: transaction_id,                //unique transaction id
             success_url: success_url,
             fail_url: fail_url,
-            cancel_url: cancel_url,
-            ipn_url: ipn_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
+            cancel_url: fail_url,
+            ipn_url: fail_url,       
             shipping_method: 'OnlinePayment',                   // not necessary
             product_name: payment.EstimationId,               //estimation_id
             product_category: payment.category,                 //full or emi
@@ -151,7 +151,8 @@ router.get('/:id(\\d+)/history', passport.authenticate('jwt', { session: false }
 
     const payment_history = await PaymentHistory.findAll({
         where: {
-            PaymentId: id
+            PaymentId: id,
+            status: ['successful', 'failed']
         },
         order: [['updatedAt', 'DESC']]
     })
@@ -322,37 +323,37 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
 })
 
 //calculate total amount for different EMI choices
-router.put('/:id(\\d+)/calculateEMI', passport.authenticate('jwt', { session: false }), async (req, res) => {
-    var payment = await Payment.findByPk(req.params.id)        
-    var paymentJson
+// router.put('/:id(\\d+)/calculateEMI', passport.authenticate('jwt', { session: false }), async (req, res) => {
+//     var payment = await Payment.findByPk(req.params.id)        
+//     var paymentJson
 
-    // get params from body
-    const N = req.body.emi_installment_choice
-    const P = req.body.total_amount
-    const R = req.body.rate /100.0
-    //console.log("N=",N," P=", P, " R=",R)
+//     // get params from body
+//     const N = req.body.emi_installment_choice
+//     const P = req.body.total_amount
+//     const R = req.body.rate /100.0
+//     //console.log("N=",N," P=", P, " R=",R)
 
-    if(payment.category == "EMI"){
-        // calculate total_amount using EMI formula PR(1+R)^N/[((1+R)^N)-1]
-        var amount_per_installment = (P * R * Math.pow((1 + R), N)) / (Math.pow((1 + R), N) - 1)
-        amount_per_installment = Number(amount_per_installment.toFixed(2))
-        var total_amount = amount_per_installment * N
-        total_amount = Number(total_amount.toFixed(2))
-        //console.log("total_amount=", total_amount, " amount_per_installment=", amount_per_installment)
+//     if(payment.category == "EMI"){
+//         // calculate total_amount using EMI formula PR(1+R)^N/[((1+R)^N)-1]
+//         var amount_per_installment = (P * R * Math.pow((1 + R), N)) / (Math.pow((1 + R), N) - 1)
+//         amount_per_installment = Number(amount_per_installment.toFixed(2))
+//         var total_amount = amount_per_installment * N
+//         total_amount = Number(total_amount.toFixed(2))
+//         //console.log("total_amount=", total_amount, " amount_per_installment=", amount_per_installment)
 
-        await payment.update({
-            total_amount: total_amount
-        })
+//         await payment.update({
+//             total_amount: total_amount
+//         })
 
-        paymentJson = payment.toJSON()
-        paymentJson.amount_per_installment = amount_per_installment
-    }
-    res.json({
-        responseCode: 1,
-        responseMessage: 'Success',
-        responseData: paymentJson
-    })
-})
+//         paymentJson = payment.toJSON()
+//         paymentJson.amount_per_installment = amount_per_installment
+//     }
+//     res.json({
+//         responseCode: 1,
+//         responseMessage: 'Success',
+//         responseData: paymentJson
+//     })
+// })
 
 
 
