@@ -97,7 +97,6 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             const request = await Request.findByPk(id, {
                 include: RequestTask
             })
-
             return res.json(request)
         } catch (err) {
             console.error(err)
@@ -140,9 +139,9 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
                 totalCost += task.cost
             })
             request.dataValues.ReqAgency.dataValues.Estimation.dataValues.extraCost = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.cost - totalCost
-            reqAgency.dataValues.estimationExists = true
+            request.dataValues.estimationExists = true
         } else {
-            reqAgency.dataValues.estimationExists = false
+            request.dataValues.estimationExists = false
         }
 
         // delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.dataValues.TaskTags
