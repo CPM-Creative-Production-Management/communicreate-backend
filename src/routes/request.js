@@ -125,20 +125,22 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
         const company = await Company.findByPk(reqAgency.CompanyId)
         request.dataValues.company = company
         request.dataValues.ReqAgency = reqAgency
-        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
-        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.map(task => {
-            task.dataValues.tags = task.dataValues.TaskTags
-            delete task.dataValues.TaskTags
-        })
-        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tags = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tags
-        delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tags
-        delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
+        if (reqAgency.Estimation) {
+            request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
+            request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.map(task => {
+                task.dataValues.tags = task.dataValues.TaskTags
+                delete task.dataValues.TaskTags
+            })
+            request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tags = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tags
+            delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tags
+            delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
 
-        let totalCost = 0
-        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.map(task => {
-            totalCost += task.cost
-        })
-        request.dataValues.ReqAgency.dataValues.Estimation.dataValues.extraCost = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.cost - totalCost
+            let totalCost = 0
+            request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.map(task => {
+                totalCost += task.cost
+            })
+            request.dataValues.ReqAgency.dataValues.Estimation.dataValues.extraCost = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.cost - totalCost
+        }
 
         // delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.tasks.dataValues.TaskTags
         // delete request.dataValues.ReqAgency.dataValues.Estimation.dataValues.Tasks
