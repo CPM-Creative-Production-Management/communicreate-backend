@@ -63,6 +63,7 @@ const getCommentsRecursive = async (comment) => {
     attributes: ['id', 'name', 'email', 'type']
   })
   comment.dataValues.likes = likes
+  comment.dataValues.totalLikes = likes.length
   if (replies.length > 0) {
     for (let i = 0; i < replies.length; i++) {
       const reply = replies[i]
