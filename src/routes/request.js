@@ -1,8 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const passport = require('passport')
-const { decodeToken } = require('../utils/helper')
-const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee } = require('../models/associations')
+const { decodeToken, getCommentsRecursive } = require('../utils/helper')
+const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment } = require('../models/associations')
 
 const requestGetter = async (accepted, finalized, associatedId) => {
     const reply = await Agency.findByPk(associatedId, {
@@ -322,5 +322,89 @@ router.get('/company/:id(\\d+)/responses', passport.authenticate('jwt', {session
         res.status(500).json(err)
     }
 })
+
+// for a particular request, for a particular agency
+// post a comment
+router.post('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const requestId = req.params.rid
+    const agencyId = req.params.aid
+    const decodedToken = decodeToken(req)
+    const body = req.body.body
+    try {
+        const reqAgency = await ReqAgency.findOne({
+            where: {
+                RequestId: requestId,
+                AgencyId: agencyId
+            }
+        })
+
+        if (reqAgency === null) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
+
+        const user = await User.findOne({
+            where: {
+                email: decodedToken.email
+            }
+        })
+
+        const comment = await Comment.create({
+            body: body
+        })
+
+        await comment.setUser(user)
+        await comment.setReqAgency(reqAgency)
+
+        res.status(200).json({message: "comment posted successfully"})
+        
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "server error"})
+    }
+})
+
+// for a particular request, for a particular agency
+// get all comments
+router.get('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const requestId = req.params.rid
+    const agencyId = req.params.aid
+    try {
+        const reqAgency = await ReqAgency.findOne({
+            where: {
+                RequestId: requestId,
+                AgencyId: agencyId
+            }
+        })
+
+        if (reqAgency === null) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
+
+        const comments = await Comment.findAll({
+            where: {
+                ReqAgencyId: reqAgency.id,
+                level: 0
+            },
+            include: {
+                model: User,
+                attributes: { exclude: ['password', 'username', 'id']},
+            }
+        })
+
+        for (let i = 0; i < comments.length; i++) {
+            const comment = comments[i]
+            await getCommentsRecursive(comment)
+        }
+
+        res.status(200).json(comments)
+
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "server error"})
+    }
+})
+
 
 module.exports = router

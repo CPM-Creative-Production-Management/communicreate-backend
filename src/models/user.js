@@ -50,12 +50,10 @@ module.exports = function(sequelize, Sequelize) {
     }
 
     User.prototype.getUserAssociated = async function () {
-    if (this.associatedId && this.associatedType) {
-        if (this.associatedType === 'Agency') {
-        return await this.getAgency();
-        } else if (this.associatedType === 'Company') {
-        return await this.getCompany();
-        }
+    if (this.type === 2) {
+    return await this.getAgency();
+    } else if (this.type === 1) {
+    return await this.getCompany();
     }
     return null;
     };
