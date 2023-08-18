@@ -90,13 +90,6 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             }, {
                 model: Task,
                 joinTableAttributes: [],
-            }, {
-                model: Comment,
-                include: {
-                    model: User,
-                    attributes: ['name', 'email'],
-                    include: [Agency, Company]
-                }
             }]
         })
     } else {
@@ -122,13 +115,6 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
                     model: TaskTag,
                     joinTableAttributes: [],
                 }]
-            }, {
-                model: Comment,
-                include: {
-                    model: User,
-                    attributes: ['name', 'email'],
-                    include: [Agency, Company]
-                }
             }, {
                 model: Tag,
                 joinTableAttributes: [],
@@ -176,13 +162,6 @@ router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', 
         }, {
             model: Task,
             joinTableAttributes: [],
-        }, {
-            model: Comment,
-            include: {
-                model: User,
-                attributes: ['name', 'email'],
-                include: [Agency, Company]
-            }
         }]
     })
 
@@ -458,27 +437,5 @@ router.post('/:id(\\d+)/addtask', passport.authenticate('jwt', {session: false})
     res.json(updatedEstimation)
 })
 
-router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {
-    const id = req.params.id
-    const decodedToken = decodeToken(req)
-    const email = decodedToken.email
-    const comment = await Comment.create({
-        body: req.body.body
-    })
-    const user = await User.findOne({
-        where: {
-            email: email
-        }
-    })
-    const estimation = await Estimation.findByPk(id)
-    try {
-        await comment.setUser(user)
-        await estimation.addComment(comment)
-    } catch(err) {
-        console.log(err)
-    }
-    
-    res.json({message: 'comment added'})
-})
 
 module.exports = router

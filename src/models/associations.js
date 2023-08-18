@@ -69,11 +69,28 @@ Estimation.hasMany(Task, {
 })
 Task.belongsTo(Estimation)
 
-// an estimation can have many comments. a comment will only belong 
-// to one estimation. One to many relationship between
-//  Estimation and Comment
-Estimation.hasMany(Comment)
-Comment.belongsTo(Estimation)
+// a reqagency can have many comments. a comment will only belong 
+// to one reqagency. One to many relationship between
+//  ReqAgency and Comment
+ReqAgency.hasMany(Comment)
+Comment.belongsTo(ReqAgency)
+
+// a comment can be liked by many users. a user can like many comments.
+// Many to many relationship between user and comment through table
+// called UserLikes.
+User.belongsToMany(Comment, {
+    through: 'UserLike', as: 'Likes'
+})
+
+Comment.belongsToMany(User, {
+    through: 'UserLike', as: 'Likes'
+})
+
+// self referencing relationship between comment and comment
+Comment.belongsToMany(Comment, {
+    as: 'Replies',
+    through: 'CommentReplies',
+})
 
 // a comment can be made by an user. an user can make many comments. 
 // one to many relationship between user and comment.

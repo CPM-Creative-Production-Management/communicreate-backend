@@ -2,7 +2,6 @@ const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 
 const Comment = sequelize.define('Comment', {
-
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -10,8 +9,11 @@ const Comment = sequelize.define('Comment', {
     },
     body: {
         type: DataTypes.TEXT,
-        allowNull: false,
     },
+    level: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    }
 }, {
     freezeTableName: true,
 })

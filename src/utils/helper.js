@@ -2,8 +2,9 @@ const sequelize = require('../db/db')
 const { DataTypes } = require("sequelize")
 const User = require('../models/user')(sequelize, DataTypes)
 const jwt = require('jsonwebtoken')
-const Agency = require('../models/agency')
-const Company = require('../models/company')
+// const Agency = require('../models/agency')
+// const Company = require('../models/company')
+const { Comment, Agency, Company } = require('../models/associations')
 
 const createUser = async (name, email, password, type, associatedId) => {
     try {
@@ -51,5 +52,34 @@ const decodeToken = (req) => {
   }
 }
 
-module.exports = { createUser, decodeToken }
+const getCommentsRecursive = async (comment) => {
+  console.log(comment.dataValues.body)
+  const user = await comment.getUser()
+  const association = await user.getUserAssociated()
+  console.log(user.dataValues.type)
+  comment.dataValues.User.dataValues.association = association
+  const replies = await comment.getReplies()
+  const likes = await comment.getLikes({
+    attributes: ['id', 'name', 'email', 'type']
+  })
+  comment.dataValues.likes = likes
+  if (replies.length > 0) {
+    for (let i = 0; i < replies.length; i++) {
+      const reply = replies[i]
+      const user = await reply.getUser({
+        attributes: ['id', 'name', 'email', 'type']
+      })
+      const association = await user.getUserAssociated()
+      reply.dataValues.User = user
+      reply.dataValues.User.dataValues.association = association
+      console.log('going to recursion')
+      const replyReplies = await getCommentsRecursive(reply)
+      replies[i].dataValues.replies = replyReplies
+    }
+  }
+  comment.dataValues.replies = replies
+  return replies
+}
+
+module.exports = { createUser, decodeToken, getCommentsRecursive }
 
