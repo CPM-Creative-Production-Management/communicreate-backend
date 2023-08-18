@@ -74,16 +74,13 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     var amount = payment.total_amount;
     if (payment.category == 'EMI') {
         emi_option = 1
-        if (payment.installments_completed < payment.emi_installment_choice) {
-            var amount = ((payment.total_amount - payment.paid_amount) / (payment.emi_installment_choice - payment.installments_completed)).toFixed(2)
-        }
     }
 
     //insert into payment_history table
     const newPaymentHistory = await PaymentHistory.create({
         PaymentId: payment_id,
         transaction_id: transaction_id,
-        amount: amount,
+        amount: req.body.amount,
         status: 'pending'
     }).catch(function (err) {
         const error = {
@@ -97,7 +94,7 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     if (true) {
         //console.log('Payment History Inserted')
         const data = {
-            total_amount: amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
+            total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
             currency: 'BDT',                        //currency = BDT/USD/INR (3 letters fixed)
             tran_id: transaction_id,                //unique transaction id
             success_url: success_url,
@@ -221,9 +218,13 @@ router.post('/success', async (req, res) => {
 
             // update payment table
             const payment = await Payment.findByPk(updated_payment_history.PaymentId)
+            const amount_per_inst = ((payment.total_amount - payment.paid_amount) / (payment.emi_installment_choice - payment.installments_completed)).toFixed(2)
+            const installments = Math.floor(updated_payment_history.amount / amount_per_inst)
+            console.log('installments: ', installments)
+
             const updated_payment = await Payment.update({
                 paid_amount: payment.paid_amount + updated_payment_history.amount,
-                installments_completed: payment.installments_completed + 1
+                installments_completed: payment.installments_completed + installments
             }, {
                 where: {
                     id: payment.id
@@ -238,7 +239,7 @@ router.post('/success', async (req, res) => {
                 data: data
             }
             console.log('returning to frontend')
-            return res.status(200).redirect(process.env.FRONTEND_URL + 'payment/' + payment.id)
+            return res.status(200).redirect(process.env.FRONTEND_URL + '/dues')
             // res.status(200).json({
             //     responseCode: 1,
             //     responseMessage: 'Success',
@@ -254,7 +255,7 @@ router.post('/success', async (req, res) => {
             });
         } else if (response.status == 'VALIDATED') {
             console.log('validated')
-            return res.status(200).redirect(process.env.FRONTEND_URL)
+            return res.status(200).redirect(process.env.FRONTEND_URL + '/dues')
         }
     }).catch(error => {
         console.log(error);
@@ -298,7 +299,7 @@ router.post('/failure', async (req, res) => {
                 data: data
             }
             console.log('returning to frontend')
-            return res.status(200).redirect(process.env.FRONTEND_URL)
+            return res.status(200).redirect(process.env.FRONTEND_URL + '/dues')
             // return res.status(200).json({
             //     responseCode: 1,
             //     responseMessage: 'Success',
@@ -306,7 +307,7 @@ router.post('/failure', async (req, res) => {
             // });
         } else if (response.status == 'VALIDATED') {
             console.log('validated')
-            return res.status(200).redirect(process.env.FRONTEND_URL)
+            return res.status(200).redirect(process.env.FRONTEND_URL + '/dues')
         }
     }).catch(error => {
         console.log(error);
@@ -326,15 +327,16 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
     paymentJson.remaining_installments = paymentJson.emi_installment_choice - paymentJson.installments_completed
 
     const today = new Date()
-    const isPaidAfterCreated = Math.floor((paymentJson.updatedAt - paymentJson.createdAt) / (1000 * 60 * 60 * 24))
     var days = Math.floor((today - paymentJson.updatedAt) / (1000 * 60 * 60 * 24))
 
     if (days >= 0 && days < 30) {
-        if (isPaidAfterCreated == 0) {
+        if (paymentJson.paid_amount == 0) {      //not updated once after creating
             paymentJson.overdue = 1
             paymentJson.message = days + " days overdue"
-            if (paymentJson.remaining_installments > 0) {
+            if (paymentJson.category == "EMI" && paymentJson.remaining_installments > 0) {
                 paymentJson.due_to_pay_now = (paymentJson.dueAmount / paymentJson.remaining_installments).toFixed(2)
+            } else if(paymentJson.category == "FULL") {
+                paymentJson.due_to_pay_now = paymentJson.dueAmount
             }
         } else if (paymentJson.dueAmount == 0) {
             paymentJson.overdue = 2
@@ -350,12 +352,12 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
         const months = Math.floor(days / 30)
         paymentJson.overdue = 1
         paymentJson.message = months + " months overdue"
-        if (paymentJson.remaining_installments > 0 && months > 0) {
+        if (paymentJson.category == "EMI" && paymentJson.remaining_installments > 0 && months > 0) {
             paymentJson.due_to_pay_now = months * (paymentJson.dueAmount / paymentJson.remaining_installments).toFixed(2)
+        } else if(paymentJson.category == "FULL") {
+            paymentJson.due_to_pay_now = paymentJson.dueAmount
         }
     }
-
-
 
     const response = {
         responseCode: 1,

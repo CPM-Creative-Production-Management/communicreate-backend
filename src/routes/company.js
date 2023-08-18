@@ -80,11 +80,11 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
         console.log(today)
         console.log(paymentJson[i].updatedAt)
 
-        const isPaidAfterCreated = Math.floor((paymentJson[i].updatedAt - paymentJson[i].createdAt) / (1000 * 60 * 60 * 24))
         var days = Math.floor((today - paymentJson[i].updatedAt) / (1000 * 60 * 60 * 24))
+        console.log('days: ', days)
 
         if (days >= 0 && days < 30) {
-            if (isPaidAfterCreated == 0){
+            if (paymentJson[i].paid_amount == 0) {
                 paymentJson[i].overdue = 1
                 paymentJson[i].message = days + " days overdue"
             } else if(paymentJson[i].dueAmount == 0){
