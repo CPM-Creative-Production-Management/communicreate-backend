@@ -323,6 +323,9 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
     const agency = await Agency.findByPk(paymentJson.AgencyId)
     paymentJson.agencyName = agency.name
 
+    const company = await Company.findByPk(paymentJson.CompanyId)
+    paymentJson.companyName = company.name
+
     paymentJson.dueAmount = (paymentJson.total_amount - paymentJson.paid_amount).toFixed(2)
     paymentJson.remaining_installments = paymentJson.emi_installment_choice - paymentJson.installments_completed
 
