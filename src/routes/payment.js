@@ -219,7 +219,11 @@ router.post('/success', async (req, res) => {
             // update payment table
             const payment = await Payment.findByPk(updated_payment_history.PaymentId)
             const amount_per_inst = ((payment.total_amount - payment.paid_amount) / (payment.emi_installment_choice - payment.installments_completed)).toFixed(2)
-            const installments = Math.floor(updated_payment_history.amount / amount_per_inst)
+            
+            var installments = 0
+            if(payment.category == "EMI"){
+                installments = Math.floor(updated_payment_history.amount / amount_per_inst)
+            }
             console.log('installments: ', installments)
 
             const updated_payment = await Payment.update({
@@ -356,7 +360,7 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
         paymentJson.overdue = 1
         paymentJson.message = months + " months overdue"
         if (paymentJson.category == "EMI" && paymentJson.remaining_installments > 0 && months > 0) {
-            paymentJson.due_to_pay_now = months * (paymentJson.dueAmount / paymentJson.remaining_installments).toFixed(2)
+            paymentJson.due_to_pay_now = (months * (paymentJson.dueAmount / paymentJson.remaining_installments)).toFixed(2)
         } else if(paymentJson.category == "FULL") {
             paymentJson.due_to_pay_now = paymentJson.dueAmount
         }
