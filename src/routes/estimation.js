@@ -166,6 +166,8 @@ router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', 
         }]
     })
 
+    console.log(e.id)
+
     let totalCost = 0
     e.Tasks.map(task => {
         totalCost += task.cost
