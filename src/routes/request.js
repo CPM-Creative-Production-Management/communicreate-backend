@@ -502,5 +502,42 @@ router.get('/:rid(\\d+)/agency/:aid(\\d+)/review', passport.authenticate('jwt', 
     }
 })
 
+// finalize a request
+router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const requestId = req.params.rid
+    const agencyId = req.params.aid
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    try {
+        const reqAgency = await ReqAgency.findOne({
+            where: {
+                RequestId: requestId,
+                AgencyId: agencyId
+            }
+        })
+        if (reqAgency === null) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
+        if (reqAgency.CompanyId !== associatedId) {
+            res.status(401).json({message: "unauthorized"})
+            return
+        }
+
+        if (reqAgency.finalized) {
+            res.status(400).json({message: "request already finalized"})
+            return
+        }
+
+        reqAgency.finalized = true
+        await reqAgency.save()
+        res.status(200).json({message: "request finalized successfully"})
+
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "server error"})
+    }
+})
+
 
 module.exports = router
