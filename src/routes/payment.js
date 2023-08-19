@@ -46,7 +46,7 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
         res.json({
             responseCode: 1,
             responseMessage: 'Success',
-            redirect: baseurl + 'payment/' + data.id,
+            redirect: process.env.FRONTEND_URL + 'payment/' + data.id,
             responseData: data
         });
     }).catch(function (err) {
