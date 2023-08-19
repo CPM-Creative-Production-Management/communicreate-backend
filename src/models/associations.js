@@ -107,17 +107,11 @@ Task.belongsToMany(Employee, {through: 'EmployeeTasks'})
 Task.belongsToMany(TaskTag, {through: 'TaskTaskTags'})
 TaskTag.belongsToMany(Task, {through: 'TaskTaskTags'})
 
-// a company can make many reviews. a review will be made by
-// only one company. One to many relationship between 
-// Company and Review
-Company.hasMany(Review)
-Review.belongsTo(Company)
-
-// an agency can have many reviews. a review will be 
-// issued for one agency only. One to many relationship between
-// Agency and Review
-Agency.hasMany(Review)
-Review.belongsTo(Agency)
+// a review will be made for a particular reqagency. a reqagency
+// will have one review. One to one relationship between
+// ReqAgency and Review
+ReqAgency.hasOne(Review)
+Review.belongsTo(ReqAgency)
 
 // a company can make many transactions. But a transaction will
 // always be made by one company. One to many relationship between

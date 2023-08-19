@@ -6,6 +6,7 @@ const { Estimation, Task, Employee, ReqAgency, Comment, User, Tag, TaskTag, Comp
 const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 const { decode } = require('jsonwebtoken')
+const { getCommentsRecursive } = require('../utils/helper')
 
 router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const body = req.body
@@ -436,6 +437,81 @@ router.post('/:id(\\d+)/addtask', passport.authenticate('jwt', {session: false})
     })
     res.json(updatedEstimation)
 })
+
+// for a particular request, for a particular agency
+// post a comment
+router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const estimationId = req.params.id
+    const decodedToken = decodeToken(req)
+    const body = req.body.body
+    try {
+        const estimation = await Estimation.findByPk(estimationId)
+        const reqAgency = await estimation.getReqAgency()
+
+        if (reqAgency === null) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
+
+        const user = await User.findOne({
+            where: {
+                email: decodedToken.email
+            }
+        })
+
+        const comment = await Comment.create({
+            body: body
+        })
+
+        await comment.setUser(user)
+        await comment.setReqAgency(reqAgency)
+
+        res.status(200).json({message: "comment posted successfully"})
+        
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "server error"})
+    }
+})
+
+// for a particular estimation
+// get all comments
+router.get('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const estimationId = req.params.id
+    const decodedToken = decodeToken(req)
+    try {
+        const estimation = await Estimation.findByPk(estimationId)
+        const reqAgency = await estimation.getReqAgency()
+
+        if (reqAgency === null) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
+
+        const comments = await Comment.findAll({
+            where: {
+                ReqAgencyId: reqAgency.id,
+                level: 0
+            },
+            include: {
+                model: User,
+                attributes: { exclude: ['password', 'username', 'id']},
+            }
+        })
+
+        for (let i = 0; i < comments.length; i++) {
+            const comment = comments[i]
+            await getCommentsRecursive(comment)
+        }
+
+        res.status(200).json(comments)
+
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "server error"})
+    }
+})
+
 
 
 module.exports = router

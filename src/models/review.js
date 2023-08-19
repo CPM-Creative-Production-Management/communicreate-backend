@@ -10,11 +10,12 @@ const Review = sequelize.define('Review', {
     },
     title: {
         type: DataTypes.STRING,
-        allowNull: false,
     },
     description: {
         type: DataTypes.STRING,
-        allowNull: false,
+    },
+    rating: {
+        type: DataTypes.INTEGER,
     }
 }, {
     freezeTableName: true,
