@@ -228,8 +228,6 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
     const company = await Company.findByPk(associatedId)
     // create an object without req.body.tasks
     const { tasks, ...request } = req.body
-    console.log(request)
-    console.log(tasks)
     try {
         const newRequest = await Request.create(request)
         // add the tasks to the request
@@ -248,6 +246,36 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             })
             await reqagency.setCompany(company)
         }
+        res.json(newRequest)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json(err)
+    }
+})
+
+// post a reqeuest to a particular agency
+router.post('/agency/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const agencyId = req.params.id
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const company = await Company.findByPk(associatedId)
+    const { tasks, ...request } = req.body
+    try {
+        const newRequest = await Request.create(request)
+        // add the tasks to the request
+        for (const task of tasks) {
+            const newTask = await RequestTask.create(task)
+            await newRequest.addRequestTask(newTask)
+        }
+        const agency = await Agency.findByPk(agencyId)
+        await agency.addRequest(newRequest)
+        const reqagency = await ReqAgency.findOne({
+            where: {
+                AgencyId: agency.id,
+                RequestId: newRequest.id
+            }
+        })
+        await reqagency.setCompany(company)
         res.json(newRequest)
     } catch (err) {
         console.error(err)
