@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken, getCommentsRecursive } = require('../utils/helper')
-const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment } = require('../models/associations')
+const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment, Review } = require('../models/associations')
 
 const requestGetter = async (accepted, finalized, associatedId) => {
     const reply = await Agency.findByPk(associatedId, {
@@ -427,6 +427,74 @@ router.get('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt',
         }
 
         res.status(200).json(comments)
+
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "server error"})
+    }
+})
+
+// post a review
+router.post('/:rid(\\d+)/agency/:aid(\\d+)/review', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const requestId = req.params.rid
+    const agencyId = req.params.aid
+
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const review = req.body
+
+    try {
+        const reqAgency = await ReqAgency.findOne({
+            where: {
+                RequestId: requestId,
+                AgencyId: agencyId
+            }
+        })
+        if (reqAgency === null) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
+        if (reqAgency.CompanyId !== associatedId) {
+            res.status(401).json({message: "unauthorized"})
+            return
+        }
+
+        const newReview = await Review.create(review)
+        await newReview.setReqAgency(reqAgency)
+        res.status(200).json({message: "review posted successfully"})
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "server error"})
+    }
+})
+
+// get all reviews for a particular request and a particular agency
+router.get('/:rid(\\d+)/agency/:aid(\\d+)/review', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const requestId = req.params.rid
+    const agencyId = req.params.aid
+    
+    try {
+        const reqAgency = await ReqAgency.findOne({
+            where: {
+                RequestId: requestId,
+                AgencyId: agencyId
+            }
+        })
+        if (reqAgency === null) {
+            res.status(404).json({message: "request not found"})
+            return
+        }
+        const reviews = await Review.findAll({
+            where: {
+                ReqAgencyId: reqAgency.id
+            },
+            include: {
+                model: User,
+                attributes: { exclude: ['password', 'id']},
+            }
+        })
+
+        res.status(200).json(reviews)
 
     } catch (err) {
         console.log(err)

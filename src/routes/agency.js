@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Agency, Company, Tag, Payment, PaymentHistory, Estimation, ReqAgency, Request } = require('../models/associations')
+const { Agency, Company, Tag, Payment, PaymentHistory, Estimation, ReqAgency, Request, Review, User } = require('../models/associations')
 
 router.get('/', async (req, res) => {
     const agencies = await Agency.findAll({
@@ -23,6 +23,52 @@ router.get('/', async (req, res) => {
 router.get('/:id(\\d+)', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const id = req.params.id
     const agency = await Agency.findByPk(id)
+    res.json(agency)
+})
+
+// get complete details of an agency
+router.get('/:id(\\d+)/details', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const id = req.params.id
+    const agency = await Agency.findByPk(id, {
+        include: [
+            {
+                model: Tag
+            },
+            {
+                model: ReqAgency,
+                include: [{
+                    model: Estimation,
+                    // where: {
+                    //     is_completed: true
+                    // }
+                }, {
+                    model: Review,
+                }, {
+                    model: Company
+                }]
+            }
+        ]
+    })
+
+    // add the company from reqAgency to review
+    agency.ReqAgencies.forEach(reqAgency => {
+        if (reqAgency.Review) {
+            reqAgency.Review.dataValues.Company = reqAgency.Company
+        }
+    })
+
+    const rawReviews = agency.ReqAgencies.map(reqAgency => {
+        if (reqAgency.Review) {
+            return reqAgency.Review
+        }
+    })
+
+    // remove null values from reviews
+    const reviews = rawReviews.filter(review => review != null)
+    agency.dataValues.Reviews = reviews
+
+    delete agency.dataValues.ReqAgencies
+        
     res.json(agency)
 })
 
@@ -128,6 +174,20 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
         responseData: paymentJson
     }
     res.json(response)
+})
+
+// get all reviews of an agency
+router.get('/:id(\\d+)/review', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const agencyId = req.params.id
+    const reviews = await Review.findAll({
+        include: {
+            model: ReqAgency,
+            where: {
+                AgencyId: agencyId
+            }
+        }
+    })
+    res.json(reviews)
 })
 
 module.exports = router
