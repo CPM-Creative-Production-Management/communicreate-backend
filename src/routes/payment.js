@@ -46,11 +46,11 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
         res.json({
             responseCode: 1,
             responseMessage: 'Success',
-            redirect: process.env.FRONTEND_URL + 'payment/' + data.id,
+            payment_id: data.id,
             responseData: data
         });
     }).catch(function (err) {
-        error = {
+        const error = {
             responseCode: 0,
             responseMessage: err.name,
             responseData: {}
