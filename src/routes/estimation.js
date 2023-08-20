@@ -163,6 +163,8 @@ router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', 
         }, {
             model: Task,
             joinTableAttributes: [],
+        }, {
+            model: Payment
         }]
     })
 
