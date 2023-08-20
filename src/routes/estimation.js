@@ -156,7 +156,7 @@ router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', 
             ReqAgencyId: reqAgency.id
         }, include: [{
             model: ReqAgency,
-            include: [Agency, Company, Request],
+            include: [Agency, Company, Request, Estimation],
             where: {
                 CompanyId: associatedId
             },
