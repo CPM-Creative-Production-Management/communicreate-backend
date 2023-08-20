@@ -3,6 +3,7 @@ const router = express.Router()
 const passport = require('passport')
 const { decodeToken, getCommentsRecursive } = require('../utils/helper')
 const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment, Review } = require('../models/associations')
+const { Op } = require('sequelize')
 
 const requestGetter = async (accepted, finalized, associatedId) => {
     const reply = await Agency.findByPk(associatedId, {
@@ -530,6 +531,22 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
         }
 
         reqAgency.finalized = true
+
+        // find other reqAgencies for the same request
+        const otherReqAgencies = await ReqAgency.findAll({
+            where: {
+                RequestId: requestId,
+                AgencyId: {
+                    [Op.ne]: agencyId
+                }
+            }
+        })
+
+        // delete other reqAgencies
+        for (const otherReqAgency of otherReqAgencies) {
+            await otherReqAgency.destroy()
+        }
+
         await reqAgency.save()
         res.status(200).json({message: "request finalized successfully"})
 

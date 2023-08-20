@@ -40,7 +40,9 @@ ReqAgency.belongsTo(Request)
 // a reqagency relationship might have an estimation attached
 // with it. an estimation must be attached to a reqagency
 // relationship.
-ReqAgency.hasOne(Estimation)
+ReqAgency.hasOne(Estimation, {
+    onDelete: 'CASCADE'
+})
 Estimation.belongsTo(ReqAgency)
 
 // a company can make many requests. a request must be made
@@ -134,7 +136,9 @@ Payment.belongsTo(Estimation)
 // a payment can have many payment histories. But a payment history will
 // always be made for only one payment. One to many relationship between
 // Payment and PaymentHistory.
-Payment.hasMany(PaymentHistory)
+Payment.hasMany(PaymentHistory, {
+    onDelete: 'CASCADE'
+})
 PaymentHistory.belongsTo(Payment)
 
 // an estimation can have many tags. a tag can be shared by many estimations.
