@@ -295,17 +295,28 @@ router.get('/company', passport.authenticate('jwt', {session: false}), async (re
                 model: ReqAgency,
                 where: {
                     CompanyId: associatedId
-                }
+                },
+                include: Estimation
             }    
         })
 
         requests.map(req => {
             let responses = 0
+            let finalized = false
             req.ReqAgencies.map(reqAgency => {
                 if (reqAgency.accepted) {
                     responses++
                 }
+                if (reqAgency.finalized && !finalized) {
+                    req.dataValues.finalized = true
+                    req.dataValues.estimation = reqAgency.Estimation
+                    req.dataValues.agencyId = reqAgency.AgencyId
+                    finalized = true
+                }
             })
+            if (!finalized) {
+                req.dataValues.finalized = false
+            }
             req.dataValues.responses = responses
             delete req.dataValues.ReqAgencies
         })

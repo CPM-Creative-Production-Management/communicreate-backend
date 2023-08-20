@@ -86,13 +86,13 @@ router.put('/:id(\\d+)/settags', async (req, res) => {
 })
 
 // post new agency
-router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
+router.post('/', async (req, res) => {
     const agency = await Agency.create(req.body)
     res.json(agency)
 })
 
 // edit new agency
-router.put('/:id(\\d+)', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.put('/:id(\\d+)', async (req, res) => {
     const id = req.params.id
     const body = req.body
     const update = await Agency.update(body, {
