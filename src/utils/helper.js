@@ -58,7 +58,12 @@ const getCommentsRecursive = async (comment) => {
   const association = await user.getUserAssociated()
   console.log(user.dataValues.type)
   comment.dataValues.User.dataValues.association = association
-  const replies = await comment.getReplies()
+  const replies = await comment.getReplies({
+    // order by created at
+    order: [
+      ['createdAt', 'ASC']
+    ]
+  })
   const likes = await comment.getLikes({
     attributes: ['id', 'name', 'email', 'type']
   })

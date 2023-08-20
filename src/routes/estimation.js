@@ -498,7 +498,9 @@ router.get('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}),
             include: {
                 model: User,
                 attributes: { exclude: ['password', 'username', 'id']},
-            }
+            },
+            // sort by createdAt
+            order: [['createdAt', 'ASC']]
         })
 
         for (let i = 0; i < comments.length; i++) {
