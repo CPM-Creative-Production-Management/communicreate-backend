@@ -237,7 +237,7 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             await newRequest.addRequestTask(newTask)
         }
         const agencies = await Agency.findAll()
-        for (const agency of agencies) {
+        await Promise.all(agencies.map(async agency => {
             await agency.addRequest(newRequest)
             const reqagency = await ReqAgency.findOne({
                 where: {
@@ -246,7 +246,8 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
                 }
             })
             await reqagency.setCompany(company)
-        }
+        }))
+
         res.json(newRequest)
     } catch (err) {
         console.error(err)
