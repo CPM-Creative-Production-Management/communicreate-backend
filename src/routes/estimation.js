@@ -569,6 +569,70 @@ router.get('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}),
     }
 })
 
+router.put('/task/request/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const id = req.params.id
+    try {
+        const task = await Task.findByPk(id)
+        if (task === null) {
+            res.status(404).json({message: "task not found"})
+            return
+        }
 
+        if (task.status === 1 || task.status === 2) {
+            res.status(400).json({message: "task not applicable for requesting approval"})
+            return
+        }
+
+        task.status = 1
+        await task.save()
+        return res.status(200).json({message: "task status updated successfully"})
+    } catch (err) {
+        console.log(err)
+    }
+})
+
+router.put('/task/approve/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const id = req.params.id
+    try {
+        const task = await Task.findByPk(id)
+        if (task === null) {
+            res.status(404).json({message: "task not found"})
+            return
+        }
+
+        if (task.status === 0 || task.status === 2) {
+            res.status(400).json({message: "task not applicable for approval"})
+            return
+        }
+
+        task.status = 2
+        await task.save()
+        return res.status(200).json({message: "task status updated successfully"})
+    } catch (err) {
+        console.log(err)
+    }
+})
+
+router.put('/task/review/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const id = req.params.id
+    try {
+        const task = await Task.findByPk(id)
+        if (task === null) {
+            res.status(404).json({message: "task not found"})
+            return
+        }
+
+        if (task.status === 0 || task.status === 1) {
+            res.status(400).json({message: "task not applicable for reviewing"})
+            return
+        }
+
+        task.status = 0
+        await task.save()
+        return res.status(200).json({message: "task status updated successfully"})
+    } catch (err) {
+        console.log(err)
+    }
+})
 
 module.exports = router
