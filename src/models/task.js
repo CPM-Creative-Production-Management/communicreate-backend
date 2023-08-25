@@ -19,8 +19,10 @@ const Task = sequelize.define('Task', {
         type: DataTypes.FLOAT,
         allowNull: false
     },
-    is_complete: {
-        type: DataTypes.BOOLEAN,
+    // 0: incomplete, 1: request approval, 2: approved
+    status: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
     }
 }, {
     freezeTableName: true,

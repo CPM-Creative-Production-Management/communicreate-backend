@@ -17,7 +17,7 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             is_rejected: false,
             cost: body.cost,
         })
-        const existingEstimation = await Estimation.findOne({
+        const existingEstimations = await Estimation.findAll({
             where: {
                 ReqAgencyId: body.ReqAgencyId
             }
@@ -25,10 +25,14 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
         
         // delete existing estimations if any
         let payment
-        if (existingEstimation) {
+        let updatedPayment = false
+        for (let i = 0; i < existingEstimations.length; i++) {
+            const existingEstimation = existingEstimations[i]
             payment = await existingEstimation.getPayment()
-            if (payment)
+            if (payment && !updatedPayment) {
+                updatedPayment = true
                 await payment.setEstimation(estimation)
+            }
             await existingEstimation.destroy()
         }
 
@@ -40,7 +44,8 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             await estimation.addTag(tag)
         })
         const tasks = req.body.tasks
-        tasks.map(async (taskObject) => {
+        for (let i = 0; i < tasks.length; i++) {
+            const taskObject = tasks[i]
             const employees = taskObject.employees
             const taskTags = taskObject.tags
             const task = await Task.create({
@@ -48,22 +53,23 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
                 description: taskObject.description,
                 cost: taskObject.cost
             })
-            employees.map(async (id) => {
-                const employee = await Employee.findByPk(id)
+            for (let j = 0; j < employees.length; j++) {
+                const employeeId = employees[j]
+                const employee = await Employee.findByPk(employeeId)
                 await task.addEmployee(employee)
-            })
-
-            taskTags.map(async (id) => {
-                const tag = await TaskTag.findByPk(id)
-                await task.addTaskTag(tag)
-            })
+            }
+            for (let j = 0; j < taskTags.length; j++) {
+                const taskTagId = taskTags[j]
+                const taskTag = await TaskTag.findByPk(taskTagId)
+                await task.addTaskTag(taskTag)
+            }
             await estimation.addTask(task)
-        })
+        }
         if (payment) {
             payment.total_cost = body.cost
             await payment.save()
         }
-        res.status(200).json(estimation)
+        res.status(200).json({message: "estimation created successfully"})
     } catch(err) {
         console.log(err)
         res.status(500).json(err)
@@ -308,13 +314,32 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     // at first, get the tasks.
     const estimationId = req.params.id
     const basicEstimation = await Estimation.findByPk(estimationId)
-    const {Tasks, ReqAgency, ...receivedBasicEstimation} = req.body
+    const {tasks, tags, ...receivedBasicEstimation} = req.body
     // update the basics of the estimation
     await Estimation.update(receivedBasicEstimation, {
         where: {
             id: estimationId
         }
     })
+
+    // update tags
+    const existingTags = await basicEstimation.getTags()
+    const receivedTags = tags
+    const tagsToDelete = []
+    existingTags.map(async tag => {
+        if(!receivedTags.some(rTag => rTag === tag.id)) {
+            tagsToDelete.push(tag.id)
+        }
+    })
+    await basicEstimation.removeTags(tagsToDelete)
+    for (let i = 0; i < receivedTags.length; i++) {
+        const tagId = receivedTags[i]
+        const tagExists = await basicEstimation.hasTag(tagId)
+        if (!tagExists) {
+            const newTag = await Tag.findByPk(tagId)
+            await basicEstimation.addTag(newTag)
+        }
+    }
     
     const estimation = await Estimation.findByPk(estimationId, {
         include: {
@@ -322,7 +347,8 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             include: Employee   
         }
     })
-    const receivedTasks = req.body.Tasks
+
+    const receivedTasks = tasks
     const existingTasks = await estimation.getTasks()
     // delete tasks which are not in receivedTasks
     const idsToDelete = []
@@ -332,12 +358,14 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
         }
     })
     await estimation.removeTasks(idsToDelete)
-    receivedTasks.map(async task => {
+    for (let i = 0; i < receivedTasks.length; i++) {
+        const task = receivedTasks[i]
         const taskId = task.id
         const taskExists = await estimation.hasTask(taskId)
         if (!taskExists) {
             // create a task by adding the employees
             const employeeIds = task.employees
+            const taskTags = task.tags
             // task.employees contains the employee ids as an array
             // need to add all employees to a nonexisting task
             const newTask = await Task.create({
@@ -346,12 +374,18 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
                 cost: task.cost
             })
 
-            // now add the employees to the task
-            employeeIds.map(async employeeId => {
-                const newEmployee = await Employee.findByPk(employeeId)
-                await newTask.addEmployee(newEmployee)
-            })
+            for (let i = 0; i < taskTags.length; i++) {
+                const taskTagId = taskTags[i]
+                const taskTag = await TaskTag.findByPk(taskTagId)
+                await newTask.addTaskTag(taskTag)
+            }
 
+            // now add the employees to the task
+            for (let i = 0; i < employeeIds.length; i++) {
+                const employeeId = employeeIds[i]
+                const employee = await Employee.findByPk(employeeId)
+                await newTask.addEmployee(employee)
+            }
             // add the task to the estimation
             await estimation.addTask(newTask)
         }
@@ -365,23 +399,40 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             await existingTask.save()
             // update employees of that task
             const employeeIds = task.employees
-            employeeIds.map(async id => {
-                const exists = await existingTask.hasEmployee(id)
+            for (let i = 0; i < employeeIds.length; i++) {
+                const employeeId = employeeIds[i]
+                const exists = await existingTask.hasEmployee(employeeId)
                 if (!exists) {
                     // employee is not assigned to this task. assign him now
-                    const employee = await Employee.findByPk(id)
+                    const employee = await Employee.findByPk(employeeId)
                     await existingTask.addEmployee(employee)
                 }
-            })
+            }
             const employees = await existingTask.getEmployees()
-            employees.map(async employee => {
-                if (!employeeIds.includes(employee.id)) {
-                    // unassign the employee
+            for (let i = 0; i < employees.length; i++) {
+                const employee = employees[i]
+                const employeeId = employee.id
+                const exists = employeeIds.includes(employeeId)
+                if (!exists) {
+                    // employee is assigned to this task, but not in the received task. unassign him now
                     await existingTask.removeEmployee(employee)
                 }
-            })
+            }
+
+            
+            // update task tags
+            const taskTags = task.tags
+            // remove all task tags
+            const existingTaskTags = await existingTask.getTaskTags()
+            await existingTask.removeTaskTags(existingTaskTags)
+            // add all task tags
+            for (let i = 0; i < taskTags.length; i++) {
+                const taskTagId = taskTags[i]
+                const taskTag = await TaskTag.findByPk(taskTagId)
+                await existingTask.addTaskTag(taskTag)
+            }
         }
-    })
+    }
     
     res.json({"message": `updated ${estimationId}`})
 })
