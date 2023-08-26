@@ -622,7 +622,7 @@ router.put('/task/review/:id(\\d+)', passport.authenticate('jwt', {session: fals
             return
         }
 
-        if (task.status === 0 || task.status === 1) {
+        if (task.status === 0) {
             res.status(400).json({message: "task not applicable for reviewing"})
             return
         }
