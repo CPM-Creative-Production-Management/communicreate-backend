@@ -73,13 +73,17 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
         if (agencies === null) {
             res.json([])
         } else {
-            agencies.ReqAgencies.map(reqAgency => {
-                if (reqAgency.Estimation) {
+            for (const reqAgency of agencies.ReqAgencies) {
+                const estimation = await reqAgency.getEstimation({
+                    include: Task
+                })
+                if (estimation) {
+                    reqAgency.dataValues.Estimation = estimation
                     reqAgency.dataValues.estimationExists = true
                 } else {
                     reqAgency.dataValues.estimationExists = false
                 }
-            })
+            }
             res.json(agencies.ReqAgencies)
         }
     } catch (err) {
