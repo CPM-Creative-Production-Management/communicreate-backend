@@ -3,6 +3,7 @@ const router = express.Router();
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
 const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment } = require('../models/associations')
+const { getCommentsRecursive } = require('../utils/helper')
 
 router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const decodedToken = decodeToken(req)
@@ -17,18 +18,42 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
         await reply.setUser(user)
         await reply.setReqAgency(reqAgency)
 
-        const updatedReply = await Comment.findOne({ where: { id: reply.id }, 
+        // const updatedReply = await Comment.findOne({ where: { id: reply.id }, 
+        //     include: {
+        //         model: User,
+        //         attributes: { exclude: ['password', 'username', 'id']},
+        //     }
+            
+        // })
+
+        
+        
+
+        await comment.addReply(reply)
+
+        // send the full comment list as response
+        const allComments = await Comment.findAll({
+            where: {
+                ReqAgencyId: reqAgency.id,
+                level: 0
+            },
             include: {
                 model: User,
                 attributes: { exclude: ['password', 'username', 'id']},
-            }
-            
+            },
+            // sort by createdAt
+            order: [['createdAt', 'ASC']]
         })
 
-        await comment.addReply(reply)
+        for (let i = 0; i < allComments.length; i++) {
+            const comment = allComments[i]
+            await getCommentsRecursive(comment)
+        }
+
         res.status(200).json({ 
             message: 'reply created successfully',
-            reply: updatedReply
+            
+            comments: allComments
         })
     } catch (err) {
         console.log(err)

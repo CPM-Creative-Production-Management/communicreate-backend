@@ -528,9 +528,11 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
             }
         })
 
+
         res.status(200).json({
             message: "comment posted successfully", 
             comment: updatedComment,
+            
         })
         
     } catch (err) {
