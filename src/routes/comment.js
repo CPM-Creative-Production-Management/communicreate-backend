@@ -16,8 +16,20 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
         const reqAgency = await comment.getReqAgency()
         await reply.setUser(user)
         await reply.setReqAgency(reqAgency)
+
+        const updatedReply = await Comment.findOne({ where: { id: reply.id }, 
+            include: {
+                model: User,
+                attributes: { exclude: ['password', 'username', 'id']},
+            }
+            
+        })
+
         await comment.addReply(reply)
-        res.json({ message: 'reply created successfully' })
+        res.status(200).json({ 
+            message: 'reply created successfully',
+            reply: updatedReply
+        })
     } catch (err) {
         console.log(err)
         res.status(500).json({ message: 'internal server error' })

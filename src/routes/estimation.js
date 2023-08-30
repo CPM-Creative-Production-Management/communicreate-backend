@@ -520,8 +520,18 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
 
         await comment.setUser(user)
         await comment.setReqAgency(reqAgency)
+        
+        const updatedComment= await Comment.findByPk(comment.id, {
+            include: {
+                model: User,
+                attributes: { exclude: ['password', 'username', 'id']},
+            }
+        })
 
-        res.status(200).json({message: "comment posted successfully"})
+        res.status(200).json({
+            message: "comment posted successfully", 
+            comment: updatedComment,
+        })
         
     } catch (err) {
         console.log(err)
