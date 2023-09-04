@@ -32,9 +32,36 @@ router.get('/pending', passport.authenticate('jwt', {session: false}), async (re
     const associatedId = decodedToken.associatedId;
     try {
         const agencies = await requestGetter(false, false, associatedId)
-        if (agencies === null) {
-            res.json([])
-        } else {res.json(agencies.ReqAgencies)}
+
+        // do pagination
+        if (req.query.page) {
+            const page = req.query.page
+            const limit = 10
+            const offset = (page - 1) * limit
+            const requests = agencies.ReqAgencies.slice(offset, offset + limit)
+            const totalPages = Math.ceil(agencies.ReqAgencies.length / limit)
+            // next page
+            let nextPage = null
+            if (page < totalPages) {
+                nextPage = page + 1
+            }
+            // previous page
+            let prevPage = null
+            if (page > 1) {
+                prevPage = page - 1
+            }
+            res.json({
+                requests: requests,
+                nextPage: nextPage,
+                prevPage: prevPage,
+                totalPages: totalPages
+            })
+        } else {
+            res.json(agencies.ReqAgencies)
+        }
+        // if (agencies === null) {
+        //     res.json([])
+        // } else {res.json(agencies.ReqAgencies)}
     } catch (err) {
         console.error(err)
     }
@@ -47,9 +74,7 @@ router.get('/accepted', passport.authenticate('jwt', {session: false}), async (r
     try {
         const agencies = await requestGetter(true, false, associatedId)
         console.log(agencies)
-        if (agencies === null) {
-            res.json([])
-        } else {
+        if (agencies) {
             agencies.ReqAgencies.map(reqAgency => {
                 if (reqAgency.Estimation) {
                     reqAgency.dataValues.estimationExists = true
@@ -57,6 +82,30 @@ router.get('/accepted', passport.authenticate('jwt', {session: false}), async (r
                     reqAgency.dataValues.estimationExists = false
                 }
             })
+        }
+        if (req.query.page) {
+            const page = req.query.page
+            const limit = 10
+            const offset = (page - 1) * limit
+            const requests = agencies.ReqAgencies.slice(offset, offset + limit)
+            const totalPages = Math.ceil(agencies.ReqAgencies.length / limit)
+            // next page
+            let nextPage = null
+            if (page < totalPages) {
+                nextPage = page + 1
+            }
+            // previous page
+            let prevPage = null
+            if (page > 1) {
+                prevPage = page - 1
+            }
+            res.json({
+                requests: requests,
+                nextPage: nextPage,
+                prevPage: prevPage,
+                totalPages: totalPages
+            })
+        } else {
             res.json(agencies.ReqAgencies)
         }
     } catch (err) {
