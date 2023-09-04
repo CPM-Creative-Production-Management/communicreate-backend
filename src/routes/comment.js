@@ -3,6 +3,7 @@ const router = express.Router();
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
 const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment } = require('../models/associations')
+const { getCommentsRecursive } = require('../utils/helper')
 
 router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const decodedToken = decodeToken(req)
@@ -16,8 +17,44 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
         const reqAgency = await comment.getReqAgency()
         await reply.setUser(user)
         await reply.setReqAgency(reqAgency)
+
+        // const updatedReply = await Comment.findOne({ where: { id: reply.id }, 
+        //     include: {
+        //         model: User,
+        //         attributes: { exclude: ['password', 'username', 'id']},
+        //     }
+            
+        // })
+
+        
+        
+
         await comment.addReply(reply)
-        res.json({ message: 'reply created successfully' })
+
+        // send the full comment list as response
+        const allComments = await Comment.findAll({
+            where: {
+                ReqAgencyId: reqAgency.id,
+                level: 0
+            },
+            include: {
+                model: User,
+                attributes: { exclude: ['password', 'username', 'id']},
+            },
+            // sort by createdAt
+            order: [['createdAt', 'ASC']]
+        })
+
+        for (let i = 0; i < allComments.length; i++) {
+            const comment = allComments[i]
+            await getCommentsRecursive(comment)
+        }
+
+        res.status(200).json({ 
+            message: 'reply created successfully',
+            
+            comments: allComments
+        })
     } catch (err) {
         console.log(err)
         res.status(500).json({ message: 'internal server error' })
