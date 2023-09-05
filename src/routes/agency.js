@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Agency, Company, Tag, Payment, PaymentHistory, Estimation, ReqAgency, Request, Review, User } = require('../models/associations')
+const { Agency, Company, Tag, Payment, PaymentHistory, Estimation, ReqAgency, Request, Review, User, Task } = require('../models/associations')
 
 router.get('/', async (req, res) => {
     const agencies = await Agency.findAll({
@@ -68,7 +68,7 @@ router.get('/:id(\\d+)/details', passport.authenticate('jwt', { session: false }
     agency.dataValues.Reviews = reviews
 
     delete agency.dataValues.ReqAgencies
-        
+
     res.json(agency)
 })
 
@@ -82,7 +82,7 @@ router.put('/:id(\\d+)/settags', async (req, res) => {
         const tag = await Tag.findByPk(id)
         await agency.addTag(tag)
     }
-    res.status(200).json({message: 'success'})
+    res.status(200).json({ message: 'success' })
 })
 
 // post new agency
@@ -108,7 +108,7 @@ router.put('/:id(\\d+)', async (req, res) => {
 router.delete('/:id(\\d+)', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const id = req.params.id
     const message = await Agency.destroy({
-        where : {
+        where: {
             id: id
         }
     })
@@ -128,44 +128,67 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
     })
     var paymentJson = payments.map(payment => payment.toJSON());
     // console.log(paymentJson)
-    const today = new Date()
+
     // calculate due amount for each project
     for (var i = 0; i < paymentJson.length; i++) {
-        paymentJson[i].dueAmount = (paymentJson[i].total_amount - paymentJson[i].paid_amount).toFixed(2)
-        paymentJson[i].remaining_installments = paymentJson[i].emi_installment_choice - paymentJson[i].installments_completed
+        paymentJson[i].total_amount = paymentJson[i].total_amount.toFixed(2)
+        paymentJson[i].paid_amount = paymentJson[i].paid_amount.toFixed(2)
+        paymentJson[i].due_amount = (paymentJson[i].total_amount - paymentJson[i].paid_amount).toFixed(2)
 
         const company = await Company.findByPk(paymentJson[i].CompanyId)
         paymentJson[i].companyName = company.name
 
-        console.log(today)
-        console.log(paymentJson[i].updatedAt)
-
-        var days = Math.floor((today - paymentJson[i].updatedAt) / (1000 * 60 * 60 * 24))
-        console.log('days: ', days)
-
-        if (days >= 0 && days < 30) {
-            if (paymentJson[i].paid_amount == 0) {
-                paymentJson[i].overdue = 1
-                paymentJson[i].message = days + " days overdue"
-            } else if(paymentJson[i].dueAmount == 0){
-                paymentJson[i].overdue = 2
-                paymentJson[i].message = "Full Payment Done"
+        const tasks = await Task.findAll({
+            where: {
+                EstimationId: paymentJson[i].EstimationId
             }
-            else{
+        })
+        paymentJson[i].tasks = tasks
+        const unpaid_completed_tasks = tasks.filter(task => (task.status === 2 && task.isPaid === 0));
+        const unpaid_incomplete_tasks = tasks.filter(task => (task.status !== 2 && task.isPaid === 0));
+        const paid_completed_tasks = tasks.filter(task => (task.status === 2 && task.isPaid === 1));
+        const paid_incomplete_tasks = tasks.filter(task => (task.status !== 2 && task.isPaid === 1));
+
+        if (paymentJson[i].due_amount > 0) {
+            if (unpaid_incomplete_tasks.length > 0) {
                 paymentJson[i].overdue = 0
-                paymentJson[i].message = "Dues cleared for this month"
+                paymentJson[i].message = "Tasks incomplete. Dues pending."
             }
-        } else {
-            const months = Math.floor(days / 30)
-            paymentJson[i].overdue = 1
-            paymentJson[i].message = months + " months overdue"
+            else if (unpaid_completed_tasks.length > 0) {
+                paymentJson[i].overdue = 1
+                paymentJson[i].message = "Payment Due for Completed Tasks."
+            }
+        }
+        else if (paymentJson[i].due_amount == 0) {
+            if (paid_incomplete_tasks.length > 0) {
+                paymentJson[i].overdue = 2
+                paymentJson[i].message = "Tasks incomplete. But dues cleared."
+            }
+            else if (paid_completed_tasks.length > 0) {
+                paymentJson[i].overdue = 3
+                paymentJson[i].message = "Full Payment Done."
+            }
         }
 
-
-        const estimation = await Estimation.findByPk(paymentJson[i].EstimationId)
-        const reqAgency = await ReqAgency.findByPk(estimation.ReqAgencyId)
-        const request = await Request.findByPk(reqAgency.RequestId)
-        paymentJson[i].projectName = request.name
+        const project = await Payment.findByPk(paymentJson[i].id, {
+            include: [
+                {
+                    model: Estimation,
+                    include: [
+                        {
+                            model: ReqAgency,
+                            include: [
+                                {
+                                    model: Request,
+                                    attributes: ['name'],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+        paymentJson[i].projectName = project.Estimation.ReqAgency.Request.name;
     }
 
     const response = {

@@ -23,7 +23,12 @@ const Task = sequelize.define('Task', {
     status: {
         type: DataTypes.INTEGER,
         defaultValue: 0
-    }
+    },
+    // 0: not paid, 1: paid
+    isPaid: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
 }, {
     freezeTableName: true,
 })
