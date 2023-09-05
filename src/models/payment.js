@@ -19,22 +19,6 @@ const Payment = sequelize.define('Payment', {
     paid_amount: {      //Total paid amount till now = sum of all 'amount' of all 'successful' installments from Payment_History table.
         type: DataTypes.FLOAT,
         allowNull: false
-    },
-    currency: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    category: {                      //full or emi
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    emi_installment_choice: {        //if total = 12, then total interest will be fixed for 12 months
-        type: DataTypes.INTEGER,
-        allowNull: true
-    },
-    installments_completed: {            //if this is 3 out of 12, then 3rd installment
-        type: DataTypes.INTEGER,
-        allowNull: true
     }
 }, {
     freezeTableName: true,

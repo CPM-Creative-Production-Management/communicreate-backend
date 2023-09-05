@@ -374,39 +374,4 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
     res.json(response)
 })
 
-//calculate total amount for different EMI choices
-// router.put('/:id(\\d+)/calculateEMI', passport.authenticate('jwt', { session: false }), async (req, res) => {
-//     var payment = await Payment.findByPk(req.params.id)        
-//     var paymentJson
-
-//     // get params from body
-//     const N = req.body.emi_installment_choice
-//     const P = req.body.total_amount
-//     const R = req.body.rate /100.0
-//     //console.log("N=",N," P=", P, " R=",R)
-
-//     if(payment.category == "EMI"){
-//         // calculate total_amount using EMI formula PR(1+R)^N/[((1+R)^N)-1]
-//         var amount_per_installment = (P * R * Math.pow((1 + R), N)) / (Math.pow((1 + R), N) - 1)
-//         amount_per_installment = Number(amount_per_installment.toFixed(2))
-//         var total_amount = amount_per_installment * N
-//         total_amount = Number(total_amount.toFixed(2))
-//         //console.log("total_amount=", total_amount, " amount_per_installment=", amount_per_installment)
-
-//         await payment.update({
-//             total_amount: total_amount
-//         })
-
-//         paymentJson = payment.toJSON()
-//         paymentJson.amount_per_installment = amount_per_installment
-//     }
-//     res.json({
-//         responseCode: 1,
-//         responseMessage: 'Success',
-//         responseData: paymentJson
-//     })
-// })
-
-
-
 module.exports = router
