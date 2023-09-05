@@ -141,6 +141,11 @@ Payment.hasMany(PaymentHistory, {
 })
 PaymentHistory.belongsTo(Payment)
 
+// a payment history belongs to a task. a task can have only one payment history.
+// One to one relationship between Task and PaymentHistory.
+Task.hasOne(PaymentHistory)
+PaymentHistory.belongsTo(Task)
+
 // an estimation can have many tags. a tag can be shared by many estimations.
 // Many to many relationship between Estimation and Tag
 Estimation.belongsToMany(Tag, {through: 'EstimationTags'})
