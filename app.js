@@ -23,7 +23,8 @@ const tagRouter = require('./src/routes/tag')
 const taskTagRouter = require('./src/routes/taskTag')
 const commentRouter = require('./src/routes/comment')
 const dashboardRouter = require('./src/routes/dashboard')
-const {Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User} = require('./src/models/associations')
+const notificationRouter =  require('./src/routes/notification')
+const {Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User, Notification} = require('./src/models/associations')
 
 //Initializing express
 const app = express()
@@ -51,6 +52,7 @@ app.use('/tag', tagRouter)
 app.use('/tasktag', taskTagRouter)
 app.use('/dashboard', dashboardRouter)
 app.use('/comment', commentRouter)
+app.use('/notification', notificationRouter)
 
 //Route
 app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -66,8 +68,11 @@ app.listen(process.env.PORT, async () => {
     console.log(`Example app listening at http://localhost:${process.env.PORT}`)
     try{
         await sequelize.sync(
-            // {alter: true}
+            {alter: true}
         )
+        // await Notification.sync({
+        //     alter: true
+        // })
         // console.log(typeof(x[0]))
         console.log("Database in sync with models. Clear to proceed.")
     }catch(error){
