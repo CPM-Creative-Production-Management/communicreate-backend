@@ -30,18 +30,19 @@ passport.use(new LocalStrategy({
   usernameField: 'email',
   passwordField: 'password'
 },  async function(email, password, done) {
-    console.log(email, password)
       try{
         const user = await User.findOne({where: { email: email }})
         if (!user){
             return done(null, false, { message: 'Incorrect email.' }) 
         }
         const passVal = user.validPassword(password)
+        console.log(passVal)
         if(!passVal){
             return done(null, false, { message: 'Incorrect password.' })
         }
         return done(null, user);
       }catch(err){
+        console.log(err)
           return done(err)
       }
   }

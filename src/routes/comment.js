@@ -4,17 +4,22 @@ const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
 const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment } = require('../models/associations')
 const { getCommentsRecursive } = require('../utils/helper')
+const notificationUtils = require('../utils/notification')
 
 router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const decodedToken = decodeToken(req)
     try {
         const user = await User.findOne({ where: { email: decodedToken.email } })
-        const comment = await Comment.findOne({ where: { id: req.params.id } })
+        const comment = await Comment.findOne({ where: { id: req.params.id }, include: { model: User } })
         const reply = await Comment.create({
             body: req.body.body,
             level: comment.dataValues.level + 1,
         })
-        const reqAgency = await comment.getReqAgency()
+        const reqAgency = await comment.getReqAgency({
+            include: {
+                model: Request,
+            }
+        })
         await reply.setUser(user)
         await reply.setReqAgency(reqAgency)
 
@@ -25,9 +30,6 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
         //     }
             
         // })
-
-        
-        
 
         await comment.addReply(reply)
 
@@ -50,6 +52,13 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
             await getCommentsRecursive(comment)
         }
 
+        // send notification to the user if not replying to own comment
+        if (comment.UserId !== user.id) {
+            const commentUser = await comment.getUser()
+            const commentUserAssociation = await commentUser.getUserAssociated()
+            const commentUserId = commentUser.id
+            const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, null)
+        }
         res.status(200).json({ 
             message: 'reply created successfully',
             

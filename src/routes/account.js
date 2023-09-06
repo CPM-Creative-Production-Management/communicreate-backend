@@ -8,7 +8,6 @@ const { Agency, Company, User } = require('../models/associations')
 
 router.post('/login', passport.authenticate('local', { session: false }), async (req, res) => {
     // Successful authentication
-  
     // Create a JWT payload
     const payload = {
         username: req.user.get('username'),
@@ -24,6 +23,7 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
     const user = await User.findOne({where: {email: email}, attributes: {exclude: ['password', 'username', 'id']}})
     if (user.type === 1) {
         const company = await Company.findByPk(user.associatedId)
+        console.log(user.associatedId)
         user.company = company
         user.dataValues.association = company
     } else if (user.type === 2) {
@@ -31,9 +31,8 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
         user.agency = agency
         user.dataValues.association = agency
     }
-
     // Send the JWT to the user
-    res.json({ token, user });
+    return res.json({ token, user });
   });
 
   router.get('/logout', function(req, res, next) {
