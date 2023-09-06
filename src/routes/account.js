@@ -75,14 +75,14 @@ router.get('/profile', passport.authenticate('jwt', { session: false }), async (
     if(associatedType === 1) {
         // is a client, find company
         const company = await Company.findByPk(associatedId)
-        user.dataValues.company = company
+        user.dataValues.association = company
         user.dataValues.type = 'client'
         res.status(200).json(user)
     }
     else if (associatedType === 2) {
         // is a professional, find agency
         const agency = await Agency.findByPk(associatedId)
-        user.dataValues.agency = agency
+        user.dataValues.association = agency
         user.dataValues.type = 'agency'
         res.status(200).json(user)
     } else {
@@ -97,17 +97,22 @@ router.put('/profile', passport.authenticate('jwt', { session: false }), async (
         // only pass name, email, address, phone, profile_picture
         await user.update(req.body)
         if (decodedToken.type === 1) {
-            if (req.body.company) {
+            if (req.body.association) {
                 const company = await Company.findByPk(decodedToken.associatedId)
-                await company.update(req.body.company)
+                user.dataValues.type = 'company'
+                user.dataValues.association = company
+                await company.update(req.body.association)
             }
         } else if (decodedToken.type === 2) {
-            if (req.body.agency) {
+            if (req.body.association) {
                 const agency = await Agency.findByPk(decodedToken.associatedId)
-                await agency.update(req.body.agency)
+                user.dataValues.type = 'agency'
+                user.dataValues.association = agency
+                await agency.update(req.body.association)
             }
         }
-        res.status(200).json({message: 'Successfully updated user'})
+
+        res.status(200).json({message: 'Successfully updated user', user: user})
     } catch (err) {
         console.log(err)
         res.status(500).json({message: 'Server error'})
