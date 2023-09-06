@@ -34,19 +34,19 @@ const Agency = sequelize.define('Agency', {
     timestamps: false
 })
 
-Agency.prototype.addUser = async function (user) {
-    user.associatedId = this.id;
-    user.associatedType = 2;
-    await user.save();
-};
+// Agency.prototype.addUser = async function (user) {
+//     user.associatedId = this.id;
+//     user.associatedType = 2;
+//     await user.save();
+// };
 
-Agency.prototype.getUsers = async function () {
-    return User.findAll({
-      where: {
-        associatedId: this.id,
-        associatedType: 2
-      }
-    });
-  };
+// Agency.prototype.getUsers = async function () {
+//     return User.findAll({
+//       where: {
+//         associatedId: this.id,
+//         associatedType: 2
+//       }
+//     });
+//   };
 
 module.exports = Agency

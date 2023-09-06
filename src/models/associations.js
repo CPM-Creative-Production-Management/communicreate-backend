@@ -14,7 +14,39 @@ const Review = require('./review')
 const ReqAgency = require('./req_agency')
 const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
+const Notification = require('./notification')
 const User = require('../models/user')(sequelize, DataTypes)
+
+Company.prototype.addUser = async function (user) {
+    user.associatedId = this.id;
+    user.type = 1;
+    await user.save();
+};
+
+Company.prototype.getUsers = async function () {
+    return User.findAll({
+      where: {
+        associatedId: this.id,
+        type: 1
+      }
+    });
+  };
+
+Agency.prototype.addUser = async function (user) {
+    user.associatedId = this.id;
+    user.type = 2;
+    await user.save();
+};
+
+Agency.prototype.getUsers = async function () {
+    return User.findAll({
+        where: {
+        associatedId: this.id,
+        type: 2
+        }
+    });
+};
+
 // associations
 
 
@@ -151,4 +183,9 @@ PaymentHistory.belongsTo(Task)
 Estimation.belongsToMany(Tag, {through: 'EstimationTags'})
 Tag.belongsToMany(Estimation, {through: 'EstimationTags'})
 
-module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User }
+// a notification can be sent to many users. a user can recieve many notifications.
+// Many to many relationship between Notification and User
+Notification.belongsToMany(User, {through: 'UserNotifications'})
+User.belongsToMany(Notification, {through: 'UserNotifications'})
+
+module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User, Notification }

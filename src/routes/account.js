@@ -71,7 +71,7 @@ router.get('/profile', passport.authenticate('jwt', { session: false }), async (
     const decodedToken = decodeToken(req)
     const associatedType = decodedToken.type
     const associatedId = decodedToken.associatedId
-    const user = await User.findOne({where: {username: decodedToken.username}})
+    const user = await User.findOne({where: {email: decodedToken.email}})
     if(associatedType === 1) {
         // is a client, find company
         const company = await Company.findByPk(associatedId)
@@ -87,6 +87,22 @@ router.get('/profile', passport.authenticate('jwt', { session: false }), async (
         res.status(200).json(user)
     } else {
         res.status(401).json({message: "Incorrect JWT token"})
+    }
+})
+
+router.put('/profile', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const decodedToken = decodeToken(req)
+    try {
+        const user = await User.findOne({where: {email: decodedToken.email}})
+        if (req.body.password) {
+            return res.status(401).json({message: 'Cannot change password'})
+        }
+        // only pass name, email, address, phone, profile_picture
+        await user.update(req.body)
+        res.status(200).json({message: 'Successfully updated user'})
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: 'Server error'})
     }
 })
 
