@@ -36,7 +36,7 @@ router.get('/pending', passport.authenticate('jwt', {session: false}), async (re
 
         // do pagination
         if (req.query.page) {
-            const page = req.query.page
+            const page = parseInt(req.query.page)
             const limit = 10
             const offset = (page - 1) * limit
             const requests = agencies.ReqAgencies.slice(offset, offset + limit)
@@ -85,7 +85,7 @@ router.get('/accepted', passport.authenticate('jwt', {session: false}), async (r
             })
         }
         if (req.query.page) {
-            const page = req.query.page
+            const page = parseInt(req.query.page)
             const limit = 10
             const offset = (page - 1) * limit
             const requests = agencies.ReqAgencies.slice(offset, offset + limit)
@@ -121,7 +121,7 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
     try {
         const agencies = await requestGetter(true, true, associatedId)
         if (agencies === null) {
-            res.json([])
+            return res.json([])
         } else {
             for (const reqAgency of agencies.ReqAgencies) {
                 const estimation = await reqAgency.getEstimation({
@@ -134,6 +134,34 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
                     reqAgency.dataValues.estimationExists = false
                 }
             }
+            // res.json(agencies.ReqAgencies)
+        }
+
+        if (req.query.page) {
+            const page = parseInt(req.query.page)
+            const limit = 5
+            const offset = (page - 1) * limit
+            const requests = agencies.ReqAgencies.slice(offset, offset + limit)
+            const totalPages = Math.ceil(agencies.ReqAgencies.length / limit)
+            // next page
+            let nextPage = null
+            console.log(page)
+            if (page < totalPages) {
+                nextPage = page + 1
+            }
+            console.log(nextPage)
+            // previous page
+            let prevPage = null
+            if (page > 1) {
+                prevPage = page - 1
+            }
+            res.json({
+                requests: requests,
+                nextPage: nextPage,
+                prevPage: prevPage,
+                totalPages: totalPages
+            })
+        } else {
             res.json(agencies.ReqAgencies)
         }
     } catch (err) {
@@ -390,7 +418,31 @@ router.get('/company', passport.authenticate('jwt', {session: false}), async (re
             delete req.dataValues.ReqAgencies
         })
 
-        res.json(requests)
+        if (req.query.page) {
+            const page = parseInt(req.query.page)
+            const limit = 10
+            const offset = (page - 1) * limit
+            const slicedRequests = requests.slice(offset, offset + limit)
+            const totalPages = Math.ceil(requests.length / limit)
+            // next page
+            let nextPage = null
+            if (page < totalPages) {
+                nextPage = page + 1
+            }
+            // previous page
+            let prevPage = null
+            if (page > 1) {
+                prevPage = page - 1
+            }
+            res.json({
+                requests: slicedRequests,
+                nextPage: nextPage,
+                prevPage: prevPage,
+                totalPages: totalPages
+            })
+        } else {
+            res.json(requests)
+        }
     } catch (err) {
         console.error(err)
         res.status(500).json(err)
