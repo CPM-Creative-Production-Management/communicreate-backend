@@ -232,6 +232,8 @@ router.post('/:id/accept', passport.authenticate('jwt', {session: false}), async
             request.ReqAgencies[0].accepted = true
             request.ReqAgencies[0].save()
             const agency = await Agency.findByPk(associatedId)
+            
+            // send notification
             const notification = await notificationUtils.sendCompanyNotification(
                 request.ReqAgencies[0].CompanyId,
                 `${agency.name} has accepted your request ${request.name}`,
@@ -611,7 +613,17 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
             where: {
                 RequestId: requestId,
                 AgencyId: agencyId
+            },
+            include: [{
+                model: Request,
+            },
+            {
+                model: Company
+            },
+            {
+                model: Estimation,
             }
+        ]
         })
         if (reqAgency === null) {
             res.status(404).json({message: "request not found"})
@@ -648,7 +660,7 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
         // send notification to the agency
         const notification = await notificationUtils.sendAgencyNotification(
             agencyId,
-            `Your request ${reqAgency.Request.name} has been finalized`,
+            `Your estimation for ${reqAgency.Request.name} from ${reqAgency.Company.name} has been finalized`,
             null
         )
 

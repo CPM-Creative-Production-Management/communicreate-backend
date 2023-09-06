@@ -76,12 +76,20 @@ router.post('/:id(\\d+)/like', passport.authenticate('jwt', { session: false }),
     const decodedToken = decodeToken(req)
     try {
         const user = await User.findOne({ where: { email: decodedToken.email } })
-        const comment = await Comment.findOne({ where: { id: req.params.id } })
+        const comment = await Comment.findOne({ where: { id: req.params.id }, include: { model: User } })
         const liked = await comment.hasLike(user)
         if (liked) {
             return res.status(400).json({ message: 'comment already liked' })
         }
         await comment.addLike(user)
+        // send notification to the user if not liking own comment
+        if (comment.UserId !== user.id) {
+            const commentUser = await comment.getUser()
+            const commentUserAssociation = await commentUser.getUserAssociated()
+            const commentUserId = commentUser.id
+            const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, null)
+        }
+        
         res.json({ message: 'comment liked successfully' })
     } catch (err) {
         console.log(err)
