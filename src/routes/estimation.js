@@ -111,7 +111,6 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             }]
         })
     } else {
-        console.log('here')
         estimation = await Estimation.findByPk(estimationId, {
             include: [{
                 model: ReqAgency,
@@ -146,6 +145,7 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     const request = await reqAgency.getRequest()
     estimation.dataValues.title = request.name
     estimation.dataValues.description = request.description
+    estimation.dataValues.deadline = request.comp_deadline
     res.json(estimation)
 })
 
@@ -192,6 +192,14 @@ router.get('/request/:id(\\d+)/agency/:aId(\\d+)', passport.authenticate('jwt', 
         totalCost += task.cost
     })
 
+    let finished = true
+    e.Tasks.map(task => {
+        if (task.status !== 2) {
+            finished = false
+        }
+    })
+
+    e.dataValues.finished = finished
     e.dataValues.extraCost = e.cost - totalCost
 
     return res.json(e)
