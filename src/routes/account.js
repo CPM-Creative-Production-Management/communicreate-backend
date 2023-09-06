@@ -94,11 +94,19 @@ router.put('/profile', passport.authenticate('jwt', { session: false }), async (
     const decodedToken = decodeToken(req)
     try {
         const user = await User.findOne({where: {email: decodedToken.email}})
-        if (req.body.password) {
-            return res.status(401).json({message: 'Cannot change password'})
-        }
         // only pass name, email, address, phone, profile_picture
         await user.update(req.body)
+        if (decodedToken.type === 1) {
+            if (req.body.company) {
+                const company = await Company.findByPk(decodedToken.associatedId)
+                await company.update(req.body.company)
+            }
+        } else if (decodedToken.type === 2) {
+            if (req.body.agency) {
+                const agency = await Agency.findByPk(decodedToken.associatedId)
+                await agency.update(req.body.agency)
+            }
+        }
         res.status(200).json({message: 'Successfully updated user'})
     } catch (err) {
         console.log(err)
