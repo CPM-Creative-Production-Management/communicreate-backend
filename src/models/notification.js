@@ -12,10 +12,6 @@ const Notification = sequelize.define('Notification', {
     },
     link: {
         type: DataTypes.STRING,
-    },
-    is_read: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
     }
 }, {
     freezeTableName: true,

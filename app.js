@@ -68,7 +68,7 @@ app.listen(process.env.PORT, async () => {
     console.log(`Example app listening at http://localhost:${process.env.PORT}`)
     try{
         await sequelize.sync(
-            {alter: true}
+            // {alter: true}
         )
         // await Notification.sync({
         //     alter: true
