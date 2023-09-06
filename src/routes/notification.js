@@ -31,21 +31,58 @@ router.post('/agency/:id', async (req, res) => {
 router.get('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const decodedToken = decodeToken(req)
     const user = await User.findOne({where: {email: decodedToken.email}})
-    const notifications = await user.getNotifications()
+    const notificationObjects = await user.getNotifications()
     // mark all notifications as read
-    for (let i = 0; i < notifications.length; i++) {
-        await notifications[i].update({read: true})
+    for (let i = 0; i < notificationObjects.length; i++) {
+        await user.addNotification(notificationObjects[i], {through: {read: true}})
     }
-
+    // sort notifications by date
+    notificationObjects.sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt)
+    })
+    const notifications = []
+    for (let i = 0; i < notificationObjects.length; i++) {
+        const notification = notificationObjects[i]
+        const notificationObject = {
+            id: notification.id,
+            message: notification.message,
+            link: notification.link,
+            read: notification.UserNotifications.read,
+            createdAt: notification.createdAt
+        }
+        notifications.push(notificationObject)
+    }
     // pagination
     if (req.query.page) {
         const page = parseInt(req.query.page)
         const limit = 10
         const offset = (page - 1) * limit
         const paginatedNotifications = notifications.slice(offset, offset + limit)
-        
+        const totalPages = Math.ceil(notifications.length / limit)
+        // next page
+        let nextPage = null
+        if (page < totalPages) {
+            nextPage = page + 1
+        }
+        // previous page
+        let previousPage = null
+        if (page > 1) {
+            previousPage = page - 1
+        }
+        res.json({
+            notifications: paginatedNotifications,
+            nextPage: nextPage,
+            previousPage: previousPage,
+            totalPages: totalPages
+        })
+    } else {
+        res.json({
+            notifications: notifications,
+            nextPage: null,
+            previousPage: null,
+            totalPages: 1
+        })
     }
-    res.json(notifications)
 })
 
 module.exports = router

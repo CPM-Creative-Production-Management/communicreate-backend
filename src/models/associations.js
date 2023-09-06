@@ -17,6 +17,21 @@ const sequelize = require('../db/db');
 const Notification = require('./notification')
 const User = require('../models/user')(sequelize, DataTypes)
 
+const UserNotifications = sequelize.define('UserNotifications', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    read: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    }
+}, {
+    freezeTableName: true,
+    timestamps: false
+})
+
 Company.prototype.addUser = async function (user) {
     user.associatedId = this.id;
     user.type = 1;
@@ -188,4 +203,9 @@ Tag.belongsToMany(Estimation, {through: 'EstimationTags'})
 Notification.belongsToMany(User, {through: 'UserNotifications'})
 User.belongsToMany(Notification, {through: 'UserNotifications'})
 
-module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User, Notification }
+User.hasMany(UserNotifications)
+UserNotifications.belongsTo(User)
+Notification.hasMany(UserNotifications)
+UserNotifications.belongsTo(Notification)
+    
+module.exports = { Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User, Notification, UserNotifications }
