@@ -481,16 +481,21 @@ router.get('/company', passport.authenticate('jwt', {session: false}), async (re
     // will be called by a user
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId;
+    let requests
     try {
-        const requests = await Request.findAll({
+        requests = await Request.findAll({
             include: {
                 model: ReqAgency,
                 where: {
                     CompanyId: associatedId
                 },
-                include: Estimation
+                include: {
+                    model: Estimation
+                }
             }    
         })
+
+        
 
         // sort the requests by finalized and accepted
         requests.sort((a, b) => {
@@ -520,6 +525,7 @@ router.get('/company', passport.authenticate('jwt', {session: false}), async (re
             return 0    
         })
 
+
         requests.map(req => {
             let responses = 0
             let finalized = false
@@ -539,6 +545,13 @@ router.get('/company', passport.authenticate('jwt', {session: false}), async (re
             }
             req.dataValues.responses = responses
             delete req.dataValues.ReqAgencies
+        })
+
+        
+        requests = requests.filter(req => {
+            if (req.ReqAgencies[0].Estimation)
+                return !req.ReqAgencies[0].Estimation.is_completed
+            return true
         })
 
         if (req.query.page) {
@@ -870,6 +883,9 @@ router.get('/company/finished', passport.authenticate('jwt', {session: false}), 
                     where: {
                         is_completed: true
                     },
+                },
+                {
+                    model: Review
                 }
             ],
                 // attributes: {
