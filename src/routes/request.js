@@ -317,6 +317,7 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             })
             request.dataValues.ReqAgency.dataValues.Estimation.dataValues.extraCost = request.dataValues.ReqAgency.dataValues.Estimation.dataValues.cost - totalCost
             request.dataValues.estimationExists = true
+            request.dataValues.ReqAgency.dataValues.Estimation.dataValues.deadline = request.comp_deadline
         } else {
             request.dataValues.estimationExists = false
         }
