@@ -134,7 +134,26 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
                     reqAgency.dataValues.estimationExists = false
                 }
             }
+            
+            // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
+            agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
+                if (reqAgency.Estimation) {
+                    return !reqAgency.Estimation.is_completed
+                }
+                return false
+            })
+
             // res.json(agencies.ReqAgencies)
+            // sort requests by date, show newest first
+            agencies.ReqAgencies.sort((a, b) => {
+                if (a.Estimation.createdAt > b.Estimation.createdAt) {
+                    return -1
+                }
+                if (a.Estimation.createdAt < b.Estimation.createdAt) {
+                    return 1
+                }
+                return 0
+            })
         }
 
         if (req.query.page) {
@@ -142,6 +161,81 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
             const limit = 5
             const offset = (page - 1) * limit
             const requests = agencies.ReqAgencies.slice(offset, offset + limit)
+            // sort requests by date, show newest first
+            const totalPages = Math.ceil(agencies.ReqAgencies.length / limit)
+            // next page
+            let nextPage = null
+            console.log(page)
+            if (page < totalPages) {
+                nextPage = page + 1
+            }
+            console.log(nextPage)
+            // previous page
+            let prevPage = null
+            if (page > 1) {
+                prevPage = page - 1
+            }
+            res.json({
+                requests: requests,
+                nextPage: nextPage,
+                prevPage: prevPage,
+                totalPages: totalPages
+            })
+        } else {
+            res.json(agencies.ReqAgencies)
+        }
+    } catch (err) {
+        console.error(err)
+    }
+})
+
+router.get('/archived', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    try {
+        const agencies = await requestGetter(true, true, associatedId)
+        if (agencies === null) {
+            return res.json([])
+        } else {
+            for (const reqAgency of agencies.ReqAgencies) {
+                const estimation = await reqAgency.getEstimation({
+                    include: Task
+                })
+                if (estimation) {
+                    reqAgency.dataValues.Estimation = estimation
+                    reqAgency.dataValues.estimationExists = true
+                } else {
+                    reqAgency.dataValues.estimationExists = false
+                }
+            }
+            
+            // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
+            agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
+                if (reqAgency.Estimation) {
+                    return reqAgency.Estimation.is_completed
+                }
+                return false
+            })
+
+            // res.json(agencies.ReqAgencies)
+            // sort requests by date, show newest first
+            agencies.ReqAgencies.sort((a, b) => {
+                if (a.Estimation.createdAt > b.Estimation.createdAt) {
+                    return -1
+                }
+                if (a.Estimation.createdAt < b.Estimation.createdAt) {
+                    return 1
+                }
+                return 0
+            })
+        }
+
+        if (req.query.page) {
+            const page = parseInt(req.query.page)
+            const limit = 5
+            const offset = (page - 1) * limit
+            const requests = agencies.ReqAgencies.slice(offset, offset + limit)
+            // sort requests by date, show newest first
             const totalPages = Math.ceil(agencies.ReqAgencies.length / limit)
             // next page
             let nextPage = null
@@ -395,6 +489,34 @@ router.get('/company', passport.authenticate('jwt', {session: false}), async (re
                 },
                 include: Estimation
             }    
+        })
+
+        // sort the requests by finalized and accepted
+        requests.sort((a, b) => {
+            if (a.ReqAgencies[0].finalized && !b.ReqAgencies[0].finalized) {
+                return -1
+            }
+            if (!a.ReqAgencies[0].finalized && b.ReqAgencies[0].finalized) {
+                return 1
+            }
+            if (a.ReqAgencies[0].accepted && !b.ReqAgencies[0].accepted) {
+                return -1
+            }
+            if (!a.ReqAgencies[0].accepted && b.ReqAgencies[0].accepted) {
+                return 1
+            }
+            return 0
+        })
+
+        // sort the requests by date
+        requests.sort((a, b) => {
+            if (a.createdAt > b.createdAt) {
+                return -1
+            }
+            if (a.createdAt < b.createdAt) {
+                return 1
+            }
+            return 0    
         })
 
         requests.map(req => {
@@ -721,6 +843,76 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
     } catch (err) {
         console.log(err)
         res.status(500).json({message: "server error"})
+    }
+})
+
+
+// get all finished projects of a company
+router.get('/company/finished', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    // will be called by a user
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const reply = await Company.findByPk(associatedId, {
+        include: [
+            {
+                model: ReqAgency,
+                where: {
+                    accepted: true,
+                    finalized: true,
+                },
+                include: [{
+                    model: Request,
+                    include: RequestTask
+                }, Company,
+                {
+                    model: Estimation,
+                    where: {
+                        is_completed: true
+                    },
+                }
+            ],
+                // attributes: {
+                //     exclude: ['id', 'accepted', 'finalized', 'ReqAgencyId']
+                // }
+            }
+    ],
+    })
+    
+    if (req.query.page) {
+        const page = parseInt(req.query.page)
+        const limit = 10
+        const offset = (page - 1) * limit
+        if (reply === null) {
+            return res.json({
+                requests: [],
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0
+            })
+        }
+        const requests = reply.ReqAgencies.slice(offset, offset + limit)
+        requests.map(req => {
+            req.dataValues.estimationExists = true
+        })
+        const totalPages = Math.ceil(reply.ReqAgencies.length / limit)
+        // next page
+        let nextPage = null
+        if (page < totalPages) {
+            nextPage = page + 1
+        }
+        // previous page
+        let prevPage = null
+        if (page > 1) {
+            prevPage = page - 1
+        }
+        res.json({
+            requests: requests,
+            nextPage: nextPage,
+            prevPage: prevPage,
+            totalPages: totalPages
+        })
+    } else {
+        res.json(reply.ReqAgencies)
     }
 })
 
