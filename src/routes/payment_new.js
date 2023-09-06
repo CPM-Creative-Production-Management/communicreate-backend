@@ -9,6 +9,7 @@ const { Company } = require('../models/associations')
 const { Payment, Estimation, ReqAgency, Request, Task } = require('../models/associations')
 const { PaymentHistory } = require('../models/associations')
 const bodyParser = require('body-parser').json()
+const notificationUtils = require('../utils/notification')
 
 //for SSLCOMMERZ
 const SSLCommerzPayment = require('sslcommerz').SslCommerzPayment
@@ -260,6 +261,22 @@ router.post('/success', async (req, res) => {
                 data: data
             }
             console.log('returning to frontend')
+
+            // send notification to agency regarding successful payment
+            const company = await Company.findByPk(updated_payment2.CompanyId)
+            const estimation = await Estimation.findByPk(updated_payment2.EstimationId, {
+                include: {
+                    model: ReqAgency,
+                    include: {
+                        model: Request,
+                    }
+                }
+            })
+            const notification = notificationUtils.sendAgencyNotification(
+                updated_payment2.AgencyId,
+                `Received payment of BDT ${updated_payment_history.amount} from ${company.name} for project ${estimation.ReqAgency.Request.name}`,
+            )
+
             return res.status(200).redirect(process.env.FRONTEND_URL + '/dues')
             // res.status(200).json({
             //     responseCode: 1,

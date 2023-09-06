@@ -4,6 +4,7 @@ const passport = require('passport')
 const { decodeToken, getCommentsRecursive } = require('../utils/helper')
 const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, TaskTag, Tag, Employee, User, Comment, Review } = require('../models/associations')
 const { Op } = require('sequelize')
+const notificationUtils = require('../utils/notification')
 
 const requestGetter = async (accepted, finalized, associatedId) => {
     const reply = await Agency.findByPk(associatedId, {
@@ -230,6 +231,14 @@ router.post('/:id/accept', passport.authenticate('jwt', {session: false}), async
         if (request.ReqAgencies[0] !== null) {
             request.ReqAgencies[0].accepted = true
             request.ReqAgencies[0].save()
+            const agency = await Agency.findByPk(associatedId)
+            
+            // send notification
+            const notification = await notificationUtils.sendCompanyNotification(
+                request.ReqAgencies[0].CompanyId,
+                `${agency.name} has accepted your request ${request.name}`,
+                null
+            )
             res.json(request)
         }
         // res.json(request)
@@ -331,6 +340,12 @@ router.post('/agency/:id', passport.authenticate('jwt', {session: false}), async
             }
         })
         await reqagency.setCompany(company)
+        // send notification to the agency
+        const notification = await notificationUtils.sendAgencyNotification(
+            agencyId,
+            `${company.name} has sent you a private request ${newRequest.name}`,
+            null
+        )
         res.json(newRequest)
     } catch (err) {
         console.error(err)
@@ -429,7 +444,8 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt'
             where: {
                 RequestId: requestId,
                 AgencyId: agencyId
-            }
+            },
+            include: [Request, Company, Agency]
         })
 
         if (reqAgency === null) {
@@ -449,6 +465,24 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt'
 
         await comment.setUser(user)
         await comment.setReqAgency(reqAgency)
+
+        // send notification
+        // send notification to the agency if the user is a company
+        if (decodedToken.type === 1) {
+            const notification = await notificationUtils.sendAgencyNotification(
+                agencyId,
+                `${user.name} from ${reqAgency.Company.name} has commented on your request ${reqAgency.Request.name}`,
+                null
+            )
+        }
+        // send notification to the company if the user is an agency
+        else {
+            const notification = await notificationUtils.sendCompanyNotification(
+                reqAgency.CompanyId,
+                `${user.name} from ${reqAgency.Agency.name} has commented on your request ${reqAgency.Request.name}`,
+                null
+            )
+        }
 
         res.status(200).json({message: "comment posted successfully"})
         
@@ -579,7 +613,17 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
             where: {
                 RequestId: requestId,
                 AgencyId: agencyId
+            },
+            include: [{
+                model: Request,
+            },
+            {
+                model: Company
+            },
+            {
+                model: Estimation,
             }
+        ]
         })
         if (reqAgency === null) {
             res.status(404).json({message: "request not found"})
@@ -613,6 +657,13 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
         }
 
         await reqAgency.save()
+        // send notification to the agency
+        const notification = await notificationUtils.sendAgencyNotification(
+            agencyId,
+            `Your estimation for ${reqAgency.Request.name} from ${reqAgency.Company.name} has been finalized`,
+            null
+        )
+
         res.status(200).json({message: "request finalized successfully"})
 
     } catch (err) {

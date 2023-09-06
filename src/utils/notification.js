@@ -86,11 +86,45 @@ const sendAllAgencyNotification = async (message, link) => {
     return notification
 }
 
+// send notification to company except one user
+const sendCompanyNotificationExcept = async (companyId, userId, message, link) => {
+    const company = await Company.findByPk(companyId)
+    const notification = await Notification.create({
+        message: message,
+        link: link
+    })
+    const users = await company.getUsers()
+    for (let i = 0; i < users.length; i++) {
+        if (users[i].id !== userId) {
+            await users[i].addNotification(notification)
+        }
+    }
+    return notification
+}
+
+// send notification to agency except one user
+const sendAgencyNotificationExcept = async (agencyId, userId, message, link) => {
+    const agency = await Agency.findByPk(agencyId)
+    const notification = await Notification.create({
+        message: message,
+        link: link
+    })
+    const users = await agency.getUsers()
+    for (let i = 0; i < users.length; i++) {
+        if (users[i].id !== userId) {
+            await users[i].addNotification(notification)
+        }
+    }
+    return notification
+}
+
 module.exports = {
     sendNotification,
     sendCompanyNotification,
     sendAgencyNotification,
     sendAllNotification,
     sendAllCompanyNotification,
-    sendAllAgencyNotification
+    sendAllAgencyNotification,
+    sendCompanyNotificationExcept,
+    sendAgencyNotificationExcept
 }

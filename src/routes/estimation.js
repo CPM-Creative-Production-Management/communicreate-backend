@@ -7,6 +7,7 @@ const { DataTypes } = require("sequelize")
 const sequelize = require('../db/db');
 const { decode } = require('jsonwebtoken')
 const { getCommentsRecursive } = require('../utils/helper')
+const notificationUtils = require('../utils/notification')
 
 router.post('/', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const body = req.body
@@ -36,7 +37,9 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             await existingEstimation.destroy()
         }
 
-        const reqAgency = await ReqAgency.findByPk(body.ReqAgencyId)
+        const reqAgency = await ReqAgency.findByPk(body.ReqAgencyId, {
+            include: Request
+        })
         await estimation.setReqAgency(reqAgency)
         const tags = body.tags
         tags.map(async (id) => {
@@ -69,6 +72,14 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
             payment.total_cost = body.cost
             await payment.save()
         }
+        // send notification to the company
+        const companyId = reqAgency.CompanyId
+        const agency = await Agency.findByPk(reqAgency.AgencyId)
+        const notification = await notificationUtils.sendCompanyNotification(
+            companyId,
+            `${agency.name} has sent you an estimation for your request ${reqAgency.Request.name}`,
+            null
+        )
         res.status(200).json({message: "estimation created successfully"})
     } catch(err) {
         console.log(err)
@@ -313,7 +324,14 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     // an estimation has many tasks, and those tasks have employees.
     // at first, get the tasks.
     const estimationId = req.params.id
-    const basicEstimation = await Estimation.findByPk(estimationId)
+    const basicEstimation = await Estimation.findByPk(estimationId, {
+        include: {
+            model: ReqAgency,
+            include: {
+                model: Request
+            }
+        }
+    })
     const {tasks, tags, ...receivedBasicEstimation} = req.body
     // update the basics of the estimation
     await Estimation.update(receivedBasicEstimation, {
@@ -433,7 +451,13 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
             }
         }
     }
-    
+    // send notification to company
+    const agency = await Agency.findByPk(basicEstimation.ReqAgency.AgencyId)
+    const notification = await notificationUtils.sendCompanyNotification(
+        basicEstimation.ReqAgency.CompanyId,
+        `${agency.name} has updated the estimation for your request ${basicEstimation.ReqAgency.Request.name}`,
+        null
+    )
     res.json({"message": `updated ${estimationId}`})
 })
 
@@ -501,7 +525,18 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
     const body = req.body.body
     try {
         const estimation = await Estimation.findByPk(estimationId)
-        const reqAgency = await estimation.getReqAgency()
+        const reqAgency = await estimation.getReqAgency({
+            include: [{
+                model: Request
+            },
+            {
+                model: Company
+            },
+            {
+                model: Agency
+            }
+        ]
+        })
 
         if (reqAgency === null) {
             res.status(404).json({message: "request not found"})
@@ -528,6 +563,25 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
             }
         })
 
+        // send notification
+        // if the user is a company, send notification to the agency
+        // if the user is an agency, send notification to the company
+        const agency = await Agency.findByPk(reqAgency.AgencyId)
+        const company = await Company.findByPk(reqAgency.CompanyId)
+        let notification
+        if (decodedToken.type === 1) {
+            notification = await notificationUtils.sendAgencyNotification(
+                agency.id,
+                `${user.name} from ${reqAgency.Company.name} has commented on your estimation for ${reqAgency.Request.name}`,
+                null
+            )
+        } else {
+            notification = await notificationUtils.sendCompanyNotification(
+                company.id,
+                `${user.name} from ${reqAgency.Agency.name} has commented on your estimation for ${reqAgency.Request.name}`,
+                null
+            )
+        }
 
         res.status(200).json({
             message: "comment posted successfully", 
