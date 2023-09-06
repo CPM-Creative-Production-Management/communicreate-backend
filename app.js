@@ -24,6 +24,7 @@ const taskTagRouter = require('./src/routes/taskTag')
 const commentRouter = require('./src/routes/comment')
 const dashboardRouter = require('./src/routes/dashboard')
 const notificationRouter =  require('./src/routes/notification')
+const searchRouter = require('./src/routes/search')
 const {Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User, Notification} = require('./src/models/associations')
 
 //Initializing express
@@ -53,6 +54,7 @@ app.use('/tasktag', taskTagRouter)
 app.use('/dashboard', dashboardRouter)
 app.use('/comment', commentRouter)
 app.use('/notification', notificationRouter)
+app.use('/search', searchRouter)
 
 //Route
 app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
