@@ -26,7 +26,8 @@ router.post('/new', passport.authenticate('jwt', { session: false }), async (req
     const newPayment = await Payment.create({
         total_amount: req.body.amount,          //SSLCommerz can allow 10.00 BDT to 500000.00 BDT per transaction
         paid_amount: 0,
-        EstimationId: req.body.estimation_id,                    //estimation_id
+        payment_type: req.body.payment_type,                // Full = 0 / Taskwise = 1
+        EstimationId: req.body.estimation_id,              //estimation_id
         CompanyId: req.body.company_id,                    // customer name = company id
         AgencyId: req.body.agency_id,                      // ship name = agency id
     }).then(function (data) {
@@ -53,21 +54,39 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
     const payment = await Payment.findByPk(payment_id)
     console.log(payment)
 
-    const task = await Task.findByPk(req.body.taskId)
-    console.log("Task : ", task)
-    let amount = task.cost
-
-    // count number of isPaid = 0 tasks under this particular estimation
-    const remaining_tasks_count = await Task.count({
-        where: {
-            isPaid: 0,
-            EstimationId: payment.EstimationId
-        }
-    })
-    console.log(remaining_tasks_count)
-    // if only one task is remaining, then pay the rest of the amount as well to complete the whole payment
-    if(remaining_tasks_count == 1){
+    let amount = 0
+    let task_id = 0
+    if (payment.payment_type === 0) {
+        // FULL PAYMENT
         amount = payment.total_amount - payment.paid_amount
+        const tasks = await Task.findAll({
+            where: {
+                EstimationId: payment.EstimationId
+            }
+        })
+        console.log("TASKS---->", tasks)
+        task_id = tasks[0].id           //any task id will do, we are taking the first one
+        console.log("TASK ID---->", task_id)
+    }
+    else {
+        // TASKWISE PAYMENT
+        task_id = req.body.taskId
+        const task = await Task.findByPk(task_id)
+        console.log("Task : ", task)
+        amount = task.cost
+
+        // count number of isPaid = 0 tasks under this particular estimation
+        const remaining_tasks_count = await Task.count({
+            where: {
+                isPaid: 0,
+                EstimationId: payment.EstimationId
+            }
+        })
+        console.log(remaining_tasks_count)
+        // if only one task is remaining, then pay the rest of the amount as well to complete the whole payment
+        if (remaining_tasks_count == 1) {
+            amount = payment.total_amount - payment.paid_amount
+        }
     }
 
     const company = await Company.findByPk(payment.CompanyId)
@@ -80,7 +99,7 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
         transaction_id: transaction_id,
         amount: amount,
         status: 'pending',
-        TaskId: req.body.taskId
+        TaskId: task_id
     }).catch(function (err) {
         const error = {
             responseCode: 0,
@@ -89,7 +108,7 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
         };
         res.json(error)
     });
-    //console.log(newPaymentHistory)
+
     if (true) {
         //console.log('Payment History Inserted')
         const data = {
@@ -102,8 +121,8 @@ router.post('/:id(\\d+)/init', passport.authenticate('jwt', { session: false }),
             ipn_url: success_url,       //Instant Payment Notification (IPN) URL of website where SSLCOMMERZ will send the transaction's status
             shipping_method: 'Online Payment',                  // not necessary
             product_name: payment.EstimationId,                 //estimation_id
-            product_category: 'TASK BASED',                     //not necessary
-            emi_option: 0,                                      // 0 for full payment, 1 for emi
+            product_category: "Creative Content",               //not necessary
+            emi_option: payment.payment_type,                   // 0 for full payment, 1 for taskwise payment
             emi_max_inst_option: 0,                            // Max installments we allow 0
             emi_selected_inst: 0,                               // 0
             emi_allow_only: 0,                                  // Value is always 0. If 1 then only EMI is possible, no Mobile banking and internet banking channel will not display. 
@@ -242,22 +261,45 @@ router.post('/success', async (req, res) => {
             const updated_payment2 = await Payment.findByPk(payment.id)
             console.log(updated_payment2)
 
+
             // update Task table. make isPaid = 1
-            const task = await Task.findByPk(updated_payment_history.TaskId)
-            const updated_task = await Task.update({
-                isPaid: 1
-            }, {
-                where: {
-                    id: task.id
-                },
-            });
-            const updated_task2 = await Task.findByPk(task.id)
-            console.log(updated_task2)
+            if (updated_payment2.payment_type == 0) {
+                const tasks = await Task.findAll({
+                    where: {
+                        EstimationId: updated_payment2.EstimationId
+                    }
+                })
+                for (var i = 0; i < tasks.length; i++) {
+                    const updated_task = await Task.update({
+                        isPaid: 1
+                    }, {
+                        where: {
+                            id: tasks[i].id
+                        },
+                    });
+                }
+                const updated_task2 = await Task.findAll({
+                    where: {
+                        EstimationId: updated_payment2.EstimationId
+                    }
+                })
+            }
+            else{
+                const task = await Task.findByPk(updated_payment_history.TaskId)
+                const updated_task = await Task.update({
+                    isPaid: 1
+                }, {
+                    where: {
+                        id: task.id
+                    },
+                });
+                const updated_task2 = await Task.findByPk(task.id)
+                console.log(updated_task2)
+            }
 
             responseData = {
                 payment_history: updated_payment_history,
                 payment: updated_payment2,
-                task: updated_task2,
                 data: data
             }
             console.log('returning to frontend')
@@ -386,7 +428,7 @@ router.get('/:id(\\d+)/dues', passport.authenticate('jwt', { session: false }), 
     const paid_completed_tasks = tasks.filter(task => (task.status === 2 && task.isPaid === 1));
     const paid_incomplete_tasks = tasks.filter(task => (task.status !== 2 && task.isPaid === 1));
 
-    if(paymentJson.due_amount > 0){
+    if (paymentJson.due_amount > 0) {
         if (unpaid_incomplete_tasks.length > 0) {
             paymentJson.overdue = 0
             paymentJson.message = "Tasks are incomplete. But advance payment can be made."
