@@ -96,13 +96,13 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
             }
             else if (unpaid_completed_tasks.length > 0) {
                 paymentJson[i].overdue = 1
-                paymentJson[i].message = "Payment Due for Completed Tasks"
+                paymentJson[i].message = "Payment overdue for completed tasks"
             }
         }
         else if (paymentJson[i].due_amount == 0) {
             if (paid_incomplete_tasks.length > 0) {
                 paymentJson[i].overdue = 2
-                paymentJson[i].message = "Tasks incomplete, but dues cleared"
+                paymentJson[i].message = "Dues already cleared, but tasks are incomplete "
             }
             else if (paid_completed_tasks.length > 0) {
                 paymentJson[i].overdue = 3
