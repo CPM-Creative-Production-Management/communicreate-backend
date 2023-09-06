@@ -305,20 +305,12 @@ router.post('/reject/:id', passport.authenticate('jwt', {session: false}), async
     res.json(estimation)
 })
 
-// finalize an ongoing estimation
-router.post('/finalize/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {
+// finish an ongoing estimation
+router.put('/finish/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const id = req.params.id
-    const decodedToken = decodeToken(req)
-    const associatedId = decodedToken.associatedId
     const estimation = await Estimation.findByPk(id, {
-        include: {
-            model: ReqAgency,
-            where: {
-                AgencyId: associatedId
-            },
-        },
         where: {
-            is_accepted: false,
+            is_completed: false,
         }
     })
     if (estimation !== null) {
