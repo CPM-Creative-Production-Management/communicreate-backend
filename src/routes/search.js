@@ -297,7 +297,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var employeeJson = employee.map(o => o.toJSON());
                     for (var i = 0; i < employeeJson.length; i++) {
                         delete employeeJson[i].password
-                        employeeJson[i].url = frontendURL + '/profile/' + employeeJson[i].id
+                        employeeJson[i].url = frontendURL + '/employee/' + employeeJson[i].id
                     }
                     result.employee = employeeJson
                 }
