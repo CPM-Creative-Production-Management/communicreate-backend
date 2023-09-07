@@ -11,17 +11,44 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
     try {
         const decodedToken = decodeToken(req)
         const associatedId = decodedToken.associatedId
-        const keyword = req.query.keyword;
-        const filter = req.query.filter;
-        console.log(filter)
+
+        var keyword = "";
+        const estimationConditions = {};
+        const agencyConditions = {};
+        if (req.query.keyword) {
+            keyword = req.query.keyword;
+            estimationConditions.title = {
+                [Op.iLike]: `%${keyword}%`
+            };
+            agencyConditions.name = {
+                [Op.iLike]: `%${keyword}%`
+            };
+        }
+        console.log("keyword --------> ", keyword)
+
+        var filter = [];
+        if (req.query.filter) {
+            filter = req.query.filter;
+        }
+        console.log("filter --------> ", filter)
+
+        var searchTags = [];
+        if (req.query.tag) {
+            if (Array.isArray(req.query.tag)) {
+                searchTags = req.query.tag.map(num => parseInt(num, 10));
+            } else {
+                searchTags = [parseInt(req.query.tag, 10)];
+            }
+        }
+        console.log("searchTags --------> ", searchTags)
+
         var result = {
             user: [],
             employee: [],
             company: [],
             agency: [],
             request: [],
-            estimation: [],
-            tag: []
+            estimation: []
         }
 
         const thisUser = await User.findOne({
@@ -33,98 +60,31 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 exclude: ['password']
             }
         });
-        console.log(thisUser)
 
-        if (!filter) {
-            // send all results
-
-            if (thisUser.type === 2) {
-                //find which agency this user belongs to
-                const thisUserAgency = await Agency.findByPk(associatedId)
-
-                // find all employees of the agency whose name this keyword matches with
-                const employee = await thisUserAgency.getEmployees({
-                    where: {
-                        name: {
-                            [Op.iLike]: `%${keyword}%`
-                        }
-                    }
-                });
-                var employeeJson = employee.map(o => o.toJSON());
-                for (var i = 0; i < employeeJson.length; i++) {
-                    delete employeeJson[i].password
-                    employeeJson[i].url = frontendURL + '/profile/' + employeeJson[i].id
-                }
-                console.log(employeeJson)
-                result.employee = employeeJson
-            }
-
-            const user = await User.findAll({
-                where: {
-                    name: {
-                        [Op.iLike]: `%${keyword}%`
-                    }
-                }
-            });
-            var userJson = user.map(o => o.toJSON());
-            for (var i = 0; i < userJson.length; i++) {
-                delete userJson[i].password
-                userJson[i].url = frontendURL + '/profile/' + userJson[i].id
-            }
-            console.log(userJson)
-            result.user = userJson
-
-            const company = await Company.findAll({
-                where: {
-                    name: {
-                        [Op.iLike]: `%${keyword}%`
-                    }
-                }
-            });
-            var companyJson = company.map(o => o.toJSON());
-            for (var i = 0; i < companyJson.length; i++) {
-                companyJson[i].url = frontendURL + '/company/' + companyJson[i].id
-            }
-            console.log(companyJson)
-            result.company = companyJson
+        if (searchTags.length > 0) {
+            // if tags are specified, search for only agencies and estimations with those tags
 
             const agency = await Agency.findAll({
-                where: {
-                    name: {
-                        [Op.iLike]: `%${keyword}%`
+                where: agencyConditions,
+                include: [
+                    {
+                        model: Tag,
+                        where: {
+                            id: {
+                                [Op.in]: searchTags
+                            }
+                        },
                     }
-                }
+                ]
             });
             var agencyJson = agency.map(o => o.toJSON());
             for (var i = 0; i < agencyJson.length; i++) {
                 agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
             }
-            console.log(agencyJson)
             result.agency = agencyJson
 
-            const request = await Request.findAll({
-                where: {
-                    name: {
-                        [Op.iLike]: `%${keyword}%`
-                    }
-                },
-                include: [
-                    {
-                        model: ReqAgency,
-                        where: {
-                            [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                        },
-                    },
-                ],
-            });
-            result.request = request
-
             const estimation = await Estimation.findAll({
-                where: {
-                    title: {
-                        [Op.iLike]: `%${keyword}%`
-                    }
-                },
+                where: estimationConditions,
                 include: [
                     {
                         model: ReqAgency,
@@ -144,82 +104,49 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             }
                         ],
                     },
+                    {
+                        model: Tag,
+                        where: {
+                            id: {
+                                [Op.in]: searchTags
+                            }
+                        }
+                    }
                 ],
             });
             var estimationJson = estimation.map(o => o.toJSON());
             for (var i = 0; i < estimationJson.length; i++) {
                 estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
             }
-            console.log(estimationJson)
+            console.log(estimationJson.length)
             result.estimation = estimationJson
-
-            const tag = await Tag.findAll({
-                where: {
-                    tag: {
-                        [Op.iLike]: `%${keyword}%`
-                    }
-                },
-                include: [
-                    {
-                        model: Estimation,
-                        include: [
-                            {
-                                model: ReqAgency,
-                                attributes: ['AgencyId', 'CompanyId', 'RequestId'],
-                                where: {
-                                    [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                },
-                                include: [
-                                    {
-                                        model: Agency
-                                    },
-                                    {
-                                        model: Company
-                                    },
-                                    {
-                                        model: Request,
-                                    }
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            });
-            var tagJson = tag.map(o => o.toJSON());
-            for (var i = 0; i < tagJson.length; i++) {
-                for (var j = 0; j < tagJson[i].Estimations.length; j++) {
-                    tagJson[i].Estimations[j].url = frontendURL + '/request/' + tagJson[i].Estimations[j].ReqAgency.RequestId + '/agency/' + tagJson[i].Estimations[j].ReqAgency.AgencyId + '/estimation'
-                }
-            }
-            console.log(tagJson)
-            result.tag = tagJson
         }
         else {
-            // send only filtered results
+            // if tags are not specified, search for all entities
 
-            if (filter.includes('employee') && thisUser.type === 2) {
-                //find which agency this user belongs to
-                const thisUserAgency = await Agency.findByPk(associatedId)
+            if (filter.length === 0) {
 
-                // find all employees of the agency whose name this keyword matches with
-                const employee = await thisUserAgency.getEmployees({
-                    where: {
-                        name: {
-                            [Op.iLike]: `%${keyword}%`
+                // if no filter, send all results
+                if (thisUser.type === 2) {
+                    //find which agency this user belongs to
+                    const thisUserAgency = await Agency.findByPk(associatedId)
+
+                    // find all employees of the agency whose name this keyword matches with
+                    const employee = await thisUserAgency.getEmployees({
+                        where: {
+                            name: {
+                                [Op.iLike]: `%${keyword}%`
+                            }
                         }
+                    });
+                    var employeeJson = employee.map(o => o.toJSON());
+                    for (var i = 0; i < employeeJson.length; i++) {
+                        delete employeeJson[i].password
+                        employeeJson[i].url = frontendURL + '/profile/' + employeeJson[i].id
                     }
-                });
-                var employeeJson = employee.map(o => o.toJSON());
-                for (var i = 0; i < employeeJson.length; i++) {
-                    delete employeeJson[i].password
-                    employeeJson[i].url = frontendURL + '/profile/' + employeeJson[i].id
+                    result.employee = employeeJson
                 }
-                console.log(employeeJson)
-                result.employee = employeeJson
-            }
 
-
-            if (filter.includes('user')) {
                 const user = await User.findAll({
                     where: {
                         name: {
@@ -232,25 +159,8 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     delete userJson[i].password
                     userJson[i].url = frontendURL + '/profile/' + userJson[i].id
                 }
-                console.log(userJson)
                 result.user = userJson
-            }
-            if (filter.includes('company')) {
-                const company = await Company.findAll({
-                    where: {
-                        name: {
-                            [Op.iLike]: `%${keyword}%`
-                        }
-                    }
-                });
-                var companyJson = company.map(o => o.toJSON());
-                for (var i = 0; i < companyJson.length; i++) {
-                    companyJson[i].url = frontendURL + '/company/' + companyJson[i].id
-                }
-                console.log(companyJson)
-                result.company = companyJson
-            }
-            if (filter.includes('agency')) {
+
                 const agency = await Agency.findAll({
                     where: {
                         name: {
@@ -262,10 +172,8 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 for (var i = 0; i < agencyJson.length; i++) {
                     agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
                 }
-                console.log(agencyJson)
                 result.agency = agencyJson
-            }
-            if (filter.includes('request')) {
+
                 const request = await Request.findAll({
                     where: {
                         name: {
@@ -282,14 +190,9 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     ],
                 });
                 result.request = request
-            }
-            if (filter.includes('estimation')) {
+
                 const estimation = await Estimation.findAll({
-                    where: {
-                        title: {
-                            [Op.iLike]: `%${keyword}%`
-                        }
-                    },
+                    where: estimationConditions,
                     include: [
                         {
                             model: ReqAgency,
@@ -308,7 +211,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                     model: Request,
                                 }
                             ],
-                        },
+                        }
                     ],
                 });
                 var estimationJson = estimation.map(o => o.toJSON());
@@ -318,47 +221,113 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 console.log(estimationJson)
                 result.estimation = estimationJson
             }
-            if (filter.includes('tag')) {
-                const tag = await Tag.findAll({
-                    where: {
-                        tag: {
-                            [Op.iLike]: `%${keyword}%`
+            else {
+                // send only filtered results
+
+                if (filter.includes('employee') && thisUser.type === 2) {
+                    //find which agency this user belongs to
+                    const thisUserAgency = await Agency.findByPk(associatedId)
+
+                    // find all employees of the agency whose name this keyword matches with
+                    const employee = await thisUserAgency.getEmployees({
+                        where: {
+                            name: {
+                                [Op.iLike]: `%${keyword}%`
+                            }
                         }
-                    },
-                    include: [
-                        {
-                            model: Estimation,
-                            include: [
-                                {
-                                    model: ReqAgency,
-                                    attributes: ['AgencyId', 'CompanyId', 'RequestId'],
-                                    where: {
-                                        [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                    },
-                                    include: [
-                                        {
-                                            model: Agency
-                                        },
-                                        {
-                                            model: Company
-                                        },
-                                        {
-                                            model: Request,
-                                        }
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                });
-                var tagJson = tag.map(o => o.toJSON());
-                for (var i = 0; i < tagJson.length; i++) {
-                    for (var j = 0; j < tagJson[i].Estimations.length; j++) {
-                        tagJson[i].Estimations[j].url = frontendURL + '/request/' + tagJson[i].Estimations[j].ReqAgency.RequestId + '/agency/' + tagJson[i].Estimations[j].ReqAgency.AgencyId + '/estimation'
+                    });
+                    var employeeJson = employee.map(o => o.toJSON());
+                    for (var i = 0; i < employeeJson.length; i++) {
+                        delete employeeJson[i].password
+                        employeeJson[i].url = frontendURL + '/profile/' + employeeJson[i].id
                     }
+                    result.employee = employeeJson
                 }
-                console.log(tagJson)
-                result.tag = tagJson
+
+
+                if (filter.includes('user')) {
+                    const user = await User.findAll({
+                        where: {
+                            name: {
+                                [Op.iLike]: `%${keyword}%`
+                            }
+                        }
+                    });
+                    var userJson = user.map(o => o.toJSON());
+                    for (var i = 0; i < userJson.length; i++) {
+                        delete userJson[i].password
+                        userJson[i].url = frontendURL + '/profile/' + userJson[i].id
+                    }
+                    result.user = userJson
+                }
+
+                if (filter.includes('agency')) {
+                    const agency = await Agency.findAll({
+                        where: {
+                            name: {
+                                [Op.iLike]: `%${keyword}%`
+                            }
+                        }
+                    });
+                    var agencyJson = agency.map(o => o.toJSON());
+                    for (var i = 0; i < agencyJson.length; i++) {
+                        agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
+                    }
+                    result.agency = agencyJson
+                }
+                if (filter.includes('request')) {
+                    const request = await Request.findAll({
+                        where: {
+                            name: {
+                                [Op.iLike]: `%${keyword}%`
+                            }
+                        },
+                        include: [
+                            {
+                                model: ReqAgency,
+                                where: {
+                                    [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
+                                },
+                            },
+                        ],
+                    });
+                    result.request = request
+                }
+                if (filter.includes('estimation')) {
+                    const estimation = await Estimation.findAll({
+                        where: {
+                            title: {
+                                [Op.iLike]: `%${keyword}%`
+                            }
+                        },
+                        include: [
+                            {
+                                model: ReqAgency,
+                                attributes: ['AgencyId', 'CompanyId', 'RequestId'],
+                                where: {
+                                    [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
+                                },
+                                include: [
+                                    {
+                                        model: Agency
+                                    },
+                                    {
+                                        model: Company
+                                    },
+                                    {
+                                        model: Request,
+                                    }
+                                ],
+                            }
+                        ],
+                    });
+                    var estimationJson = estimation.map(o => o.toJSON());
+                    for (var i = 0; i < estimationJson.length; i++) {
+                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                    }
+                    console.log(estimationJson)
+                    result.estimation = estimationJson
+                }
             }
         }
         res.json(result)
