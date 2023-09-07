@@ -13,11 +13,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
         const associatedId = decodedToken.associatedId
 
         var keyword = "";
-        const estimationConditions = {};
+        const reqCondition = {};
         const agencyConditions = {};
         if (req.query.keyword) {
             keyword = req.query.keyword;
-            estimationConditions.title = {
+            reqCondition.name = {
                 [Op.iLike]: `%${keyword}%`
             };
             agencyConditions.name = {
@@ -43,9 +43,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
         console.log("searchTags --------> ", searchTags)
 
         var result = {
-            user: [],
             employee: [],
-            company: [],
             agency: [],
             request: [],
             estimation: []
@@ -84,7 +82,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             result.agency = agencyJson
 
             const estimation = await Estimation.findAll({
-                where: estimationConditions,
                 include: [
                     {
                         model: ReqAgency,
@@ -101,6 +98,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             },
                             {
                                 model: Request,
+                                where: reqCondition
                             }
                         ],
                     },
@@ -147,20 +145,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     result.employee = employeeJson
                 }
 
-                const user = await User.findAll({
-                    where: {
-                        name: {
-                            [Op.iLike]: `%${keyword}%`
-                        }
-                    }
-                });
-                var userJson = user.map(o => o.toJSON());
-                for (var i = 0; i < userJson.length; i++) {
-                    delete userJson[i].password
-                    userJson[i].url = frontendURL + '/profile/' + userJson[i].id
-                }
-                result.user = userJson
-
                 const agency = await Agency.findAll({
                     where: {
                         name: {
@@ -183,16 +167,24 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     include: [
                         {
                             model: ReqAgency,
+                            attributes: ['AgencyId', 'CompanyId'],
                             where: {
                                 [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
                             },
+                            include: [
+                                {
+                                    model: Agency
+                                },
+                                {
+                                    model: Company
+                                },
+                            ]
                         },
                     ],
                 });
                 result.request = request
 
                 const estimation = await Estimation.findAll({
-                    where: estimationConditions,
                     include: [
                         {
                             model: ReqAgency,
@@ -209,6 +201,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 },
                                 {
                                     model: Request,
+                                    where: reqCondition
                                 }
                             ],
                         }
@@ -244,23 +237,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     result.employee = employeeJson
                 }
 
-
-                if (filter.includes('user')) {
-                    const user = await User.findAll({
-                        where: {
-                            name: {
-                                [Op.iLike]: `%${keyword}%`
-                            }
-                        }
-                    });
-                    var userJson = user.map(o => o.toJSON());
-                    for (var i = 0; i < userJson.length; i++) {
-                        delete userJson[i].password
-                        userJson[i].url = frontendURL + '/profile/' + userJson[i].id
-                    }
-                    result.user = userJson
-                }
-
                 if (filter.includes('agency')) {
                     const agency = await Agency.findAll({
                         where: {
@@ -285,9 +261,18 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                         include: [
                             {
                                 model: ReqAgency,
+                                attributes: ['AgencyId', 'CompanyId'],
                                 where: {
                                     [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
                                 },
+                                include: [
+                                    {
+                                        model: Agency
+                                    },
+                                    {
+                                        model: Company
+                                    },
+                                ]
                             },
                         ],
                     });
@@ -295,11 +280,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
                 if (filter.includes('estimation')) {
                     const estimation = await Estimation.findAll({
-                        where: {
-                            title: {
-                                [Op.iLike]: `%${keyword}%`
-                            }
-                        },
                         include: [
                             {
                                 model: ReqAgency,
@@ -316,6 +296,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                     },
                                     {
                                         model: Request,
+                                        where: reqCondition
                                     }
                                 ],
                             }
@@ -330,7 +311,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
             }
         }
-        res.json(result)
+        res.status(200).json(result)
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -389,9 +370,18 @@ router.get('/request/:keyword', passport.authenticate('jwt', { session: false })
             include: [
                 {
                     model: ReqAgency,
+                    attributes: ['AgencyId', 'CompanyId'],
                     where: {
                         [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
                     },
+                    include: [
+                        {
+                            model: Agency
+                        },
+                        {
+                            model: Company
+                        },
+                    ]
                 },
             ],
         })
