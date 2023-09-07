@@ -114,15 +114,17 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 });
                 var estimationJson = estimation.map(o => o.toJSON());
                 for (var i = 0; i < estimationJson.length; i++) {
-                    estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                    if (thisUser.type === 2) {
+                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                    } else {
+                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                    }
                 }
                 console.log(estimationJson.length)
                 result.estimation = estimationJson
             }
-            else
-            {
-                if(filter.includes('agency'))
-                {
+            else {
+                if (filter.includes('agency')) {
                     const agency = await Agency.findAll({
                         where: agencyConditions,
                         include: [
@@ -142,8 +144,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     }
                     result.agency = agencyJson
                 }
-                if(filter.includes('estimation'))
-                {
+                if (filter.includes('estimation')) {
                     const estimation = await Estimation.findAll({
                         include: [
                             {
@@ -177,7 +178,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     });
                     var estimationJson = estimation.map(o => o.toJSON());
                     for (var i = 0; i < estimationJson.length; i++) {
-                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                        if (thisUser.type === 2) {
+                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                        } else {
+                            estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                        }
                     }
                     console.log(estimationJson.length)
                     result.estimation = estimationJson
@@ -247,7 +252,16 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                         },
                     ],
                 });
-                result.request = request
+                var requestJson = request.map(o => o.toJSON());
+                for (var i = 0; i < requestJson.length; i++) {
+                    if (thisUser.type === 2) {
+                        requestJson[i].url = frontendURL + '/requests'
+                    }
+                    else {
+                        requestJson[i].url = frontendURL + '/my-requests'
+                    }
+                }
+                result.request = requestJson
 
                 const estimation = await Estimation.findAll({
                     include: [
@@ -274,7 +288,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 });
                 var estimationJson = estimation.map(o => o.toJSON());
                 for (var i = 0; i < estimationJson.length; i++) {
-                    estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                    if (thisUser.type === 2) {
+                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                    } else {
+                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                    }
                 }
                 console.log(estimationJson)
                 result.estimation = estimationJson
@@ -341,7 +359,16 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             },
                         ],
                     });
-                    result.request = request
+                    var requestJson = request.map(o => o.toJSON());
+                    for (var i = 0; i < requestJson.length; i++) {
+                        if (thisUser.type === 2) {
+                            requestJson[i].url = frontendURL + '/requests'
+                        }
+                        else {
+                            requestJson[i].url = frontendURL + '/my-requests'
+                        }
+                    }
+                    result.request = requestJson
                 }
                 if (filter.includes('estimation')) {
                     const estimation = await Estimation.findAll({
@@ -369,7 +396,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     });
                     var estimationJson = estimation.map(o => o.toJSON());
                     for (var i = 0; i < estimationJson.length; i++) {
-                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                        if (thisUser.type === 2) {
+                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                        } else {
+                            estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                        }
                     }
                     console.log(estimationJson)
                     result.estimation = estimationJson
