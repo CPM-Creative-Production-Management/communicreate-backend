@@ -72,7 +72,7 @@ app.listen(process.env.PORT, async () => {
         await sequelize.sync(
             // {alter: true}
         )
-        // await Notification.sync({
+        // await Employee.sync({
         //     alter: true
         // })
         // console.log(typeof(x[0]))

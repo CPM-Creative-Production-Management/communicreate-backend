@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Employee, Task } = require('../models/associations')
+const { Employee, Task, Agency } = require('../models/associations')
 
 
 // retrieve employee by id
@@ -14,8 +14,27 @@ router.get('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
         where: {
             id: employeeId,
             AgencyId: associatedId
-        }
+        },
+        include: Agency
     })
+    // calculate days since employee joined
+    const today = new Date()
+    const joinDate = new Date(employee.join_date)
+    const daysSinceJoined = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24))
+    // calculate months
+    const monthsSinceJoined = Math.floor(daysSinceJoined / 30)
+
+    let status
+    if (monthsSinceJoined < 3) {
+        status = 0
+    } else if (monthsSinceJoined < 12) {
+        status = 1
+    } else {
+        status = 2
+    }
+
+    employee.dataValues.status = status
+    
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(employee, null, 2))
 })

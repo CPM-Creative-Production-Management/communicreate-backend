@@ -66,8 +66,36 @@ router.get('/:id(\\d+)/details', passport.authenticate('jwt', { session: false }
     // remove null values from reviews
     const reviews = rawReviews.filter(review => review != null)
     agency.dataValues.Reviews = reviews
+    agency.dataValues.Reviews = agency.dataValues.Reviews.slice(0, 3)
 
     delete agency.dataValues.ReqAgencies
+
+    // collect company details
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const company = await Company.findByPk(associatedId)
+
+    const reqAgencies = await ReqAgency.findAll({
+        where: {
+            AgencyId: id,
+            CompanyId: associatedId,
+            accepted: true,
+            finalized: true
+        },
+        include: [{
+            model: Estimation,
+        }, {
+            model: Request
+        }, {
+            model: Company
+        }, {
+            model: Review
+        }]
+    })
+
+    agency.dataValues.ReqAgencies = reqAgencies
+    agency.dataValues.ReqAgencies = agency.dataValues.ReqAgencies.sort((a, b) => b.id - a.id)
+    agency.dataValues.ReqAgencies = agency.dataValues.ReqAgencies.slice(0, 3)
 
     res.json(agency)
 })

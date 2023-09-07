@@ -26,6 +26,17 @@ const Employee = sequelize.define('Employee', {
     profile_picture: {
         type: DataTypes.STRING,
     },
+    join_date: {
+        type: DataTypes.DATEONLY,
+        defaultValue: DataTypes.NOW
+    },
+    email: {
+        type: DataTypes.STRING,
+
+    },
+    phone: {
+        type: DataTypes.STRING
+    }
 }, {
     freezeTableName: true,
     timestamps: false
