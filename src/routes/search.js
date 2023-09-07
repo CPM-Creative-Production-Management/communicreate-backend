@@ -61,63 +61,128 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
 
         if (searchTags.length > 0) {
             // if tags are specified, search for only agencies and estimations with those tags
-
-            const agency = await Agency.findAll({
-                where: agencyConditions,
-                include: [
-                    {
-                        model: Tag,
-                        where: {
-                            id: {
-                                [Op.in]: searchTags
-                            }
-                        },
-                    }
-                ]
-            });
-            var agencyJson = agency.map(o => o.toJSON());
-            for (var i = 0; i < agencyJson.length; i++) {
-                agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
-            }
-            result.agency = agencyJson
-
-            const estimation = await Estimation.findAll({
-                include: [
-                    {
-                        model: ReqAgency,
-                        attributes: ['AgencyId', 'CompanyId', 'RequestId'],
-                        where: {
-                            [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                        },
-                        include: [
-                            {
-                                model: Agency
+            if (filter.length === 0) {
+                const agency = await Agency.findAll({
+                    where: agencyConditions,
+                    include: [
+                        {
+                            model: Tag,
+                            where: {
+                                id: {
+                                    [Op.in]: searchTags
+                                }
                             },
-                            {
-                                model: Company
+                        }
+                    ]
+                });
+                var agencyJson = agency.map(o => o.toJSON());
+                for (var i = 0; i < agencyJson.length; i++) {
+                    agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
+                }
+                result.agency = agencyJson
+
+                const estimation = await Estimation.findAll({
+                    include: [
+                        {
+                            model: ReqAgency,
+                            attributes: ['AgencyId', 'CompanyId', 'RequestId'],
+                            where: {
+                                [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
                             },
-                            {
-                                model: Request,
-                                where: reqCondition
-                            }
-                        ],
-                    },
-                    {
-                        model: Tag,
-                        where: {
-                            id: {
-                                [Op.in]: searchTags
+                            include: [
+                                {
+                                    model: Agency
+                                },
+                                {
+                                    model: Company
+                                },
+                                {
+                                    model: Request,
+                                    where: reqCondition
+                                }
+                            ],
+                        },
+                        {
+                            model: Tag,
+                            where: {
+                                id: {
+                                    [Op.in]: searchTags
+                                }
                             }
                         }
-                    }
-                ],
-            });
-            var estimationJson = estimation.map(o => o.toJSON());
-            for (var i = 0; i < estimationJson.length; i++) {
-                estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                    ],
+                });
+                var estimationJson = estimation.map(o => o.toJSON());
+                for (var i = 0; i < estimationJson.length; i++) {
+                    estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                }
+                console.log(estimationJson.length)
+                result.estimation = estimationJson
             }
-            console.log(estimationJson.length)
-            result.estimation = estimationJson
+            else
+            {
+                if(filter.includes('agency'))
+                {
+                    const agency = await Agency.findAll({
+                        where: agencyConditions,
+                        include: [
+                            {
+                                model: Tag,
+                                where: {
+                                    id: {
+                                        [Op.in]: searchTags
+                                    }
+                                },
+                            }
+                        ]
+                    });
+                    var agencyJson = agency.map(o => o.toJSON());
+                    for (var i = 0; i < agencyJson.length; i++) {
+                        agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
+                    }
+                    result.agency = agencyJson
+                }
+                if(filter.includes('estimation'))
+                {
+                    const estimation = await Estimation.findAll({
+                        include: [
+                            {
+                                model: ReqAgency,
+                                attributes: ['AgencyId', 'CompanyId', 'RequestId'],
+                                where: {
+                                    [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
+                                },
+                                include: [
+                                    {
+                                        model: Agency
+                                    },
+                                    {
+                                        model: Company
+                                    },
+                                    {
+                                        model: Request,
+                                        where: reqCondition
+                                    }
+                                ],
+                            },
+                            {
+                                model: Tag,
+                                where: {
+                                    id: {
+                                        [Op.in]: searchTags
+                                    }
+                                }
+                            }
+                        ],
+                    });
+                    var estimationJson = estimation.map(o => o.toJSON());
+                    for (var i = 0; i < estimationJson.length; i++) {
+                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                    }
+                    console.log(estimationJson.length)
+                    result.estimation = estimationJson
+                }
+            }
         }
         else {
             // if tags are not specified, search for all entities
@@ -140,7 +205,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var employeeJson = employee.map(o => o.toJSON());
                     for (var i = 0; i < employeeJson.length; i++) {
                         delete employeeJson[i].password
-                        employeeJson[i].url = frontendURL + '/profile/' + employeeJson[i].id
+                        employeeJson[i].url = frontendURL + '/employee/' + employeeJson[i].id
                     }
                     result.employee = employeeJson
                 }
@@ -232,7 +297,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var employeeJson = employee.map(o => o.toJSON());
                     for (var i = 0; i < employeeJson.length; i++) {
                         delete employeeJson[i].password
-                        employeeJson[i].url = frontendURL + '/profile/' + employeeJson[i].id
+                        employeeJson[i].url = frontendURL + '/employee/' + employeeJson[i].id
                     }
                     result.employee = employeeJson
                 }
@@ -319,10 +384,10 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
 
 
 // search for a company by its name or any substring of its name
-router.get('/company/:keyword', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/company', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
         const decodedToken = decodeToken(req)
-        const { keyword } = req.params;
+        const keyword = req.query.keyword;
         const company = await Company.findAll({
             where: {
                 name: {
@@ -337,10 +402,10 @@ router.get('/company/:keyword', passport.authenticate('jwt', { session: false })
 })
 
 // search for an agency by its name or any substring of its name
-router.get('/agency/:keyword', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/agency', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
         const decodedToken = decodeToken(req)
-        const { keyword } = req.params;
+        const keyword = req.query.keyword;
         const agency = await Agency.findAll({
             where: {
                 name: {
@@ -355,11 +420,11 @@ router.get('/agency/:keyword', passport.authenticate('jwt', { session: false }),
 })
 
 // search for a request by its title or any substring of its title
-router.get('/request/:keyword', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/request', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
         const decodedToken = decodeToken(req)
         const associatedId = decodedToken.associatedId;
-        const { keyword } = req.params;
+        const keyword = req.query.keyword;
 
         const request = await Request.findAll({
             where: {
@@ -392,11 +457,11 @@ router.get('/request/:keyword', passport.authenticate('jwt', { session: false })
 })
 
 // search for an estimation by its tag
-router.get('/tag/:keyword', passport.authenticate('jwt', { session: false }), async (req, res) => {
+router.get('/tag', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
         const decodedToken = decodeToken(req)
         const associatedId = decodedToken.associatedId
-        const { keyword } = req.params;
+        const keyword = req.query.keyword;
 
         const tag = await Tag.findAll({
             where: {
