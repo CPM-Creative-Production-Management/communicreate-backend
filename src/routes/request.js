@@ -933,5 +933,75 @@ router.get('/company/finished', passport.authenticate('jwt', {session: false}), 
     }
 })
 
+// get all finished projects of an agency
+router.get('/agency/finished', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    // will be called by a user
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const reply = await Agency.findByPk(associatedId, {
+        include: [
+            {
+                model: ReqAgency,
+                where: {
+                    accepted: true,
+                    finalized: true,
+                },
+                include: [{
+                    model: Request,
+                    include: RequestTask
+                }, Company,
+                {
+                    model: Estimation,
+                    where: {
+                        is_completed: true
+                    },
+                },
+                {
+                    model: Review
+                }
+            ],
+        }
+    ] }
+    )
+
+    if (req.query.page) {
+        const page = parseInt(req.query.page)
+        const limit = 10
+        const offset = (page - 1) * limit
+        if (reply === null) {
+            return res.json({
+                requests: [],
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0
+            })
+        }
+        const requests = reply.ReqAgencies.slice(offset, offset + limit)
+        requests.map(req => {
+            req.dataValues.estimationExists = true
+        })
+        const totalPages = Math.ceil(reply.ReqAgencies.length / limit)
+        // next page
+        let nextPage = null
+        if (page < totalPages) {
+            nextPage = page + 1
+        }
+        // previous page
+        let prevPage = null
+        if (page > 1) {
+            prevPage = page - 1
+        }
+        res.json({
+            requests: requests,
+            nextPage: nextPage,
+            prevPage: prevPage,
+            totalPages: totalPages
+        })
+    } else {
+        res.json(reply.ReqAgencies)
+    }
+    
+})
+
 
 module.exports = router
