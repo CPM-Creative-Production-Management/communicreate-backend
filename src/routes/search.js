@@ -82,52 +82,86 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 result.agency = agencyJson
 
                 try {
-                    const estimation = await Estimation.findAll({
-                        include:
-                            [
-                                {
-                                    model: ReqAgency,
-                                    where: {
-                                        [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                    },
-                                    include:
-                                        [
-                                            {
-                                                model: Request,
-                                                where: reqCondition
-                                            }
-                                        ]
-                                },
-                                {
-                                    model: Task,
-                                    include: {
-                                        model: Employee,
-                                        through: false
-                                    }
-                                },
-                                {
-                                    model: Tag,
-                                    where: {
-                                        id: {
-                                            [Op.in]: searchTags
-                                        }
-                                    }
-                                }
-                            ],
+                    const agencies = await Agency.findByPk(associatedId, {
+                        include: [
+                            {
+                                model: ReqAgency,
+                                include: [{
+                                    model: Request,
+                                    where: reqCondition,
+                                    include: RequestTask
+                                }, Company, Estimation
+                                ],
+                            }
+                        ],
                     });
-                    console.log(estimation)
-                    var estimationJson = estimation.map(o => o.toJSON());
+                    console.log("=============================================================================================")
+                    console.log(agencies)
+                    if (agencies === null) {
+                        result.estimation = []
+                    }
+                    else {
+                        for (const reqAgency of agencies.ReqAgencies) {
+                            const estimation = await reqAgency.getEstimation({
+                                include: [
+                                    {
+                                        model: Task,
+                                        include: {
+                                            model: Employee,
+                                            through: false
+                                        }
+                                    },
+                                    {
+                                        model: Tag,
+                                        where: {
+                                            id: {
+                                                [Op.in]: searchTags
+                                            }
+                                        },
+                                    }
+                                ],
+                            })
+                            if (estimation) {
+                                reqAgency.dataValues.Estimation = estimation
+                                reqAgency.dataValues.estimationExists = true
+                            } else {
+                                reqAgency.dataValues.estimationExists = false
+                            }
+                        }
+
+                        // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
+                        agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
+                            if (reqAgency.Estimation) {
+                                return !reqAgency.Estimation.is_completed
+                            }
+                            return false
+                        })
+
+                        // res.json(agencies.ReqAgencies)
+                        // sort requests by date, show newest first
+                        agencies.ReqAgencies.sort((a, b) => {
+                            if (a.Estimation.createdAt > b.Estimation.createdAt) {
+                                return -1
+                            }
+                            if (a.Estimation.createdAt < b.Estimation.createdAt) {
+                                return 1
+                            }
+                            return 0
+                        })
+                    }
+                    var estimationJson = agencies.ReqAgencies.map(o => o.toJSON());
+                    console.log(estimationJson)
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                            estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
                         } else {
-                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                            estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                         }
                     }
                     for (var i = 0; i < estimationJson.length; i++) {
-                        for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                            for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
-                                estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                        for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                            for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
                             }
                         }
                     }
@@ -159,52 +193,85 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
                 if (filter.includes('estimation')) {
                     try {
-                        const estimation = await Estimation.findAll({
-                            include:
-                                [
-                                    {
-                                        model: ReqAgency,
-                                        where: {
-                                            [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                        },
-                                        include:
-                                            [
-                                                {
-                                                    model: Request,
-                                                    where: reqCondition
-                                                }
-                                            ]
-                                    },
-                                    {
-                                        model: Task,
-                                        include: {
-                                            model: Employee,
-                                            through: false
-                                        }
-                                    },
-                                    {
-                                        model: Tag,
-                                        where: {
-                                            id: {
-                                                [Op.in]: searchTags
-                                            }
-                                        }
-                                    }
-                                ],
+                        const agencies = await Agency.findByPk(associatedId, {
+                            include: [
+                                {
+                                    model: ReqAgency,
+                                    include: [{
+                                        model: Request,
+                                        where: reqCondition,
+                                        include: RequestTask
+                                    }, Company, Estimation
+                                    ],
+                                }
+                            ],
                         });
-                        console.log(estimation)
-                        var estimationJson = estimation.map(o => o.toJSON());
+                        console.log("=============================================================================================")
+                        if (agencies === null) {
+                            result.estimation = []
+                        }
+                        else {
+                            for (const reqAgency of agencies.ReqAgencies) {
+                                const estimation = await reqAgency.getEstimation({
+                                    include: [
+                                        {
+                                            model: Task,
+                                            include: {
+                                                model: Employee,
+                                                through: false
+                                            }
+                                        },
+                                        {
+                                            model: Tag,
+                                            where: {
+                                                id: {
+                                                    [Op.in]: searchTags
+                                                }
+                                            },
+                                        }
+                                    ],
+                                })
+                                if (estimation) {
+                                    reqAgency.dataValues.Estimation = estimation
+                                    reqAgency.dataValues.estimationExists = true
+                                } else {
+                                    reqAgency.dataValues.estimationExists = false
+                                }
+                            }
+    
+                            // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
+                            agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
+                                if (reqAgency.Estimation) {
+                                    return !reqAgency.Estimation.is_completed
+                                }
+                                return false
+                            })
+    
+                            // res.json(agencies.ReqAgencies)
+                            // sort requests by date, show newest first
+                            agencies.ReqAgencies.sort((a, b) => {
+                                if (a.Estimation.createdAt > b.Estimation.createdAt) {
+                                    return -1
+                                }
+                                if (a.Estimation.createdAt < b.Estimation.createdAt) {
+                                    return 1
+                                }
+                                return 0
+                            })
+                        }
+                        var estimationJson = agencies.ReqAgencies.map(o => o.toJSON());
+                        console.log(estimationJson)
                         for (var i = 0; i < estimationJson.length; i++) {
                             if (thisUser.type === 2) {
-                                estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                                estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
                             } else {
-                                estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                                estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                             }
                         }
                         for (var i = 0; i < estimationJson.length; i++) {
-                            for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                                for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
-                                    estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                            for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                                for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                    estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
                                 }
                             }
                         }
@@ -241,6 +308,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     result.employee = employeeJson
                 }
 
+                // find all agencies whose name this keyword matches with
                 const agency = await Agency.findAll({
                     where: {
                         name: {
@@ -254,6 +322,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
                 result.agency = agencyJson
 
+                // find all requests whose name this keyword matches with
                 try {
                     const request = await Agency.findByPk(associatedId, {
                         include: [
@@ -271,11 +340,9 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             }
                         ],
                     });
-                    console.log(request)
                     var requestJson = request.toJSON();
                     for (var i = 0; i < requestJson.ReqAgencies.length; i++) {
-                        for(var j = 0; j < requestJson.ReqAgencies[i].Request.length; j++)
-                        {
+                        for (var j = 0; j < requestJson.ReqAgencies[i].Request.length; j++) {
                             requestJson.ReqAgencies[i].Request[j].url = '/requests'
                         }
                     }
@@ -284,45 +351,79 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     console.error(error)
                 }
 
+                // find all estimations whose title this keyword matches with
                 try {
-                    const estimation = await Estimation.findAll({
-                        include:
-                            [
-                                {
-                                    model: ReqAgency,
-                                    where: {
-                                        [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                    },
-                                    include:
-                                        [
-                                            {
-                                                model: Request,
-                                                where: reqCondition
-                                            }
-                                        ]
-                                },
-                                {
-                                    model: Task,
-                                    include: {
-                                        model: Employee,
-                                        through: false
-                                    }
-                                }
-                            ],
+                    const agencies = await Agency.findByPk(associatedId, {
+                        include: [
+                            {
+                                model: ReqAgency,
+                                include: [{
+                                    model: Request,
+                                    where: reqCondition,
+                                    include: RequestTask
+                                }, Company, Estimation
+                                ],
+                            }
+                        ],
                     });
-                    console.log(estimation)
-                    var estimationJson = estimation.map(o => o.toJSON());
+                    console.log("=============================================================================================")
+                    if (agencies === null) {
+                        result.estimation = []
+                    }
+                    else {
+                        for (const reqAgency of agencies.ReqAgencies) {
+                            const estimation = await reqAgency.getEstimation({
+                                include: [
+                                    {
+                                        model: Task,
+                                        include: {
+                                            model: Employee,
+                                            through: false
+                                        }
+                                    },
+                                ],
+                            })
+                            if (estimation) {
+                                reqAgency.dataValues.Estimation = estimation
+                                reqAgency.dataValues.estimationExists = true
+                            } else {
+                                reqAgency.dataValues.estimationExists = false
+                            }
+                        }
+
+                        // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
+                        agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
+                            if (reqAgency.Estimation) {
+                                return !reqAgency.Estimation.is_completed
+                            }
+                            return false
+                        })
+
+                        // res.json(agencies.ReqAgencies)
+                        // sort requests by date, show newest first
+                        agencies.ReqAgencies.sort((a, b) => {
+                            if (a.Estimation.createdAt > b.Estimation.createdAt) {
+                                return -1
+                            }
+                            if (a.Estimation.createdAt < b.Estimation.createdAt) {
+                                return 1
+                            }
+                            return 0
+                        })
+                    }
+                    var estimationJson = agencies.ReqAgencies.map(o => o.toJSON());
+                    console.log(estimationJson)
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                            estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
                         } else {
-                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                            estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                         }
                     }
                     for (var i = 0; i < estimationJson.length; i++) {
-                        for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                            for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
-                                estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                        for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                            for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
                             }
                         }
                     }
@@ -386,11 +487,9 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 }
                             ],
                         });
-                        console.log(request)
                         var requestJson = request.toJSON();
                         for (var i = 0; i < requestJson.ReqAgencies.length; i++) {
-                            for(var j = 0; j < requestJson.ReqAgencies[i].Request.length; j++)
-                            {
+                            for (var j = 0; j < requestJson.ReqAgencies[i].Request.length; j++) {
                                 requestJson.ReqAgencies[i].Request[j].url = '/requests'
                             }
                         }
@@ -401,44 +500,77 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
                 if (filter.includes('estimation')) {
                     try {
-                        const estimation = await Estimation.findAll({
-                            include:
-                                [
-                                    {
-                                        model: ReqAgency,
-                                        where: {
-                                            [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                        },
-                                        include:
-                                            [
-                                                {
-                                                    model: Request,
-                                                    where: reqCondition
-                                                }
-                                            ]
-                                    },
-                                    {
-                                        model: Task,
-                                        include: {
-                                            model: Employee,
-                                            through: false
-                                        }
-                                    }
-                                ],
+                        const agencies = await Agency.findByPk(associatedId, {
+                            include: [
+                                {
+                                    model: ReqAgency,
+                                    include: [{
+                                        model: Request,
+                                        where: reqCondition,
+                                        include: RequestTask
+                                    }, Company, Estimation
+                                    ],
+                                }
+                            ],
                         });
-                        console.log(estimation)
-                        var estimationJson = estimation.map(o => o.toJSON());
+                        console.log("=============================================================================================")
+                        if (agencies === null) {
+                            result.estimation = []
+                        }
+                        else {
+                            for (const reqAgency of agencies.ReqAgencies) {
+                                const estimation = await reqAgency.getEstimation({
+                                    include: [
+                                        {
+                                            model: Task,
+                                            include: {
+                                                model: Employee,
+                                                through: false
+                                            }
+                                        },
+                                    ],
+                                })
+                                if (estimation) {
+                                    reqAgency.dataValues.Estimation = estimation
+                                    reqAgency.dataValues.estimationExists = true
+                                } else {
+                                    reqAgency.dataValues.estimationExists = false
+                                }
+                            }
+    
+                            // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
+                            agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
+                                if (reqAgency.Estimation) {
+                                    return !reqAgency.Estimation.is_completed
+                                }
+                                return false
+                            })
+    
+                            // res.json(agencies.ReqAgencies)
+                            // sort requests by date, show newest first
+                            agencies.ReqAgencies.sort((a, b) => {
+                                if (a.Estimation.createdAt > b.Estimation.createdAt) {
+                                    return -1
+                                }
+                                if (a.Estimation.createdAt < b.Estimation.createdAt) {
+                                    return 1
+                                }
+                                return 0
+                            })
+                        }
+                        var estimationJson = agencies.ReqAgencies.map(o => o.toJSON());
+                        console.log(estimationJson)
                         for (var i = 0; i < estimationJson.length; i++) {
                             if (thisUser.type === 2) {
-                                estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                                estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
                             } else {
-                                estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                                estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                             }
                         }
                         for (var i = 0; i < estimationJson.length; i++) {
-                            for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                                for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
-                                    estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                            for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                                for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                    estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
                                 }
                             }
                         }
