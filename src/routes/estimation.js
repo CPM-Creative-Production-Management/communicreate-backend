@@ -320,6 +320,20 @@ router.put('/finish/:id', passport.authenticate('jwt', {session: false}), async 
     res.json(estimation)
 })
 
+router.put('/discard/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    const id = req.params.id
+    const estimation = await Estimation.findByPk(id, {
+        where: {
+            is_rejected: false,
+        }
+    })
+    if (estimation !== null) {
+        estimation.is_rejected = true;
+        await estimation.save()
+    }
+    res.json(estimation)
+})
+
 router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
     // an estimation has many tasks, and those tasks have employees.
     // at first, get the tasks.

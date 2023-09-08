@@ -49,6 +49,8 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
     const address = req.body.address
     const rating = req.body.rating
     const salary = req.body.salary
+    const phone = req.body.phone
+    const email = req.body.email
     
     const employee = await Employee.create({
         name: name,
@@ -56,6 +58,8 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
         address: address,
         rating: rating,
         salary: salary,
+        phone: phone,
+        email: email,
         AgencyId: associatedId
     })
 

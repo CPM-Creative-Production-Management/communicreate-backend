@@ -143,6 +143,13 @@ router.get('/finalized', passport.authenticate('jwt', {session: false}), async (
                 return false
             })
 
+            agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
+                if (reqAgency.Estimation) {
+                    return !reqAgency.Estimation.is_rejected
+                }
+                return false
+            })
+
             // res.json(agencies.ReqAgencies)
             // sort requests by date, show newest first
             agencies.ReqAgencies.sort((a, b) => {
@@ -933,6 +940,158 @@ router.get('/company/finished', passport.authenticate('jwt', {session: false}), 
     }
 })
 
+router.get('/company/ongoing', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    // will be called by a user
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const reply = await Company.findByPk(associatedId, {
+        include: [
+            {
+                model: ReqAgency,
+                where: {
+                    accepted: true,
+                    finalized: true,
+                },
+                include: [{
+                    model: Request,
+                    include: RequestTask
+                }, Company,
+                {
+                    model: Estimation,
+                    where: {
+                        is_completed: false,
+                        is_rejected: false
+                    }
+                },
+                {
+                    model: Review
+                }
+            ],
+                // attributes: {
+                //     exclude: ['id', 'accepted', 'finalized', 'ReqAgencyId']
+                // }
+            }
+    ],
+    })
+
+    reply.ReqAgencies = reply.ReqAgencies.filter(reqAgency => {
+        if (reqAgency.Estimation) {
+            return true
+        }
+        return false
+    })
+    
+    if (req.query.page) {
+        const page = parseInt(req.query.page)
+        const limit = 10
+        const offset = (page - 1) * limit
+        if (reply === null) {
+            return res.json({
+                requests: [],
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0
+            })
+        }
+        const requests = reply.ReqAgencies.slice(offset, offset + limit)
+        requests.map(req => {
+            req.dataValues.estimationExists = true
+        })
+        const totalPages = Math.ceil(reply.ReqAgencies.length / limit)
+        // next page
+        let nextPage = null
+        if (page < totalPages) {
+            nextPage = page + 1
+        }
+        // previous page
+        let prevPage = null
+        if (page > 1) {
+            prevPage = page - 1
+        }
+        res.json({
+            requests: requests,
+            nextPage: nextPage,
+            prevPage: prevPage,
+            totalPages: totalPages
+        })
+    } else {
+        res.json(reply.ReqAgencies)
+    }
+})
+
+
+// get all finished projects of a company
+router.get('/company/rejected', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    // will be called by a user
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const reply = await Company.findByPk(associatedId, {
+        include: [
+            {
+                model: ReqAgency,
+                where: {
+                    accepted: true,
+                    finalized: true,
+                },
+                include: [{
+                    model: Request,
+                    include: RequestTask
+                }, Company,
+                {
+                    model: Estimation,
+                    where: {
+                        is_rejected: true
+                    },
+                },
+                {
+                    model: Review
+                }
+            ],
+                // attributes: {
+                //     exclude: ['id', 'accepted', 'finalized', 'ReqAgencyId']
+                // }
+            }
+    ],
+    })
+    
+    if (req.query.page) {
+        const page = parseInt(req.query.page)
+        const limit = 10
+        const offset = (page - 1) * limit
+        if (reply === null) {
+            return res.json({
+                requests: [],
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0
+            })
+        }
+        const requests = reply.ReqAgencies.slice(offset, offset + limit)
+        requests.map(req => {
+            req.dataValues.estimationExists = true
+        })
+        const totalPages = Math.ceil(reply.ReqAgencies.length / limit)
+        // next page
+        let nextPage = null
+        if (page < totalPages) {
+            nextPage = page + 1
+        }
+        // previous page
+        let prevPage = null
+        if (page > 1) {
+            prevPage = page - 1
+        }
+        res.json({
+            requests: requests,
+            nextPage: nextPage,
+            prevPage: prevPage,
+            totalPages: totalPages
+        })
+    } else {
+        res.json(reply.ReqAgencies)
+    }
+})
+
 // get all finished projects of an agency
 router.get('/agency/finished', passport.authenticate('jwt', {session: false}), async (req, res) => {
     // will be called by a user
@@ -954,6 +1113,76 @@ router.get('/agency/finished', passport.authenticate('jwt', {session: false}), a
                     model: Estimation,
                     where: {
                         is_completed: true
+                    },
+                },
+                {
+                    model: Review
+                }
+            ],
+        }
+    ] }
+    )
+
+    if (req.query.page) {
+        const page = parseInt(req.query.page)
+        const limit = 10
+        const offset = (page - 1) * limit
+        if (reply === null) {
+            return res.json({
+                requests: [],
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0
+            })
+        }
+        const requests = reply.ReqAgencies.slice(offset, offset + limit)
+        requests.map(req => {
+            req.dataValues.estimationExists = true
+        })
+        const totalPages = Math.ceil(reply.ReqAgencies.length / limit)
+        // next page
+        let nextPage = null
+        if (page < totalPages) {
+            nextPage = page + 1
+        }
+        // previous page
+        let prevPage = null
+        if (page > 1) {
+            prevPage = page - 1
+        }
+        res.json({
+            requests: requests,
+            nextPage: nextPage,
+            prevPage: prevPage,
+            totalPages: totalPages
+        })
+    } else {
+        res.json(reply.ReqAgencies)
+    }
+    
+})
+
+// get all finished projects of an agency
+router.get('/agency/rejected', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    // will be called by a user
+    const decodedToken = decodeToken(req)
+    const associatedId = decodedToken.associatedId;
+    const reply = await Agency.findByPk(associatedId, {
+        include: [
+            {
+                model: ReqAgency,
+                where: {
+                    accepted: true,
+                    finalized: true,
+                },
+                include: [{
+                    model: Request,
+                    include: RequestTask
+                }, Company,
+                {
+                    model: Estimation,
+                    where: {
+                        is_rejected: true
                     },
                 },
                 {
