@@ -124,9 +124,9 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
                     }
-                    for(var i = 0; i < estimationJson.length; i++) {
-                        for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                            for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                    for (var i = 0; i < estimationJson.length; i++) {
+                        for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                            for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
                                 estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
                             }
                         }
@@ -201,9 +201,9 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                             }
                         }
-                        for(var i = 0; i < estimationJson.length; i++) {
-                            for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                                for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                        for (var i = 0; i < estimationJson.length; i++) {
+                            for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                                for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
                                     estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
                                 }
                             }
@@ -255,33 +255,31 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 result.agency = agencyJson
 
                 try {
-                    const request = await Request.findAll({
-                        where: {
-                            name: {
-                                [Op.iLike]: `%${keyword}%`
-                            }
-                        },
+                    const request = await Agency.findByPk(associatedId, {
                         include: [
                             {
                                 model: ReqAgency,
                                 include: [{
                                     model: Request,
+                                    where: {
+                                        name: {
+                                            [Op.iLike]: `%${keyword}%`
+                                        }
+                                    },
                                     include: RequestTask
                                 }, Company, Estimation],
                             }
                         ],
                     });
                     console.log(request)
-                    var requestJson = request.map(o => o.toJSON());
-                    for (var i = 0; i < requestJson.length; i++) {
-                        if (thisUser.type === 2) {
-                            requestJson[i].url = '/requests'
-                        }
-                        else {
-                            requestJson[i].url = '/my-requests'
+                    var requestJson = request.toJSON();
+                    for (var i = 0; i < requestJson.ReqAgencies.length; i++) {
+                        for(var j = 0; j < requestJson.ReqAgencies[i].Request.length; j++)
+                        {
+                            requestJson.ReqAgencies[i].Request[j].url = '/requests'
                         }
                     }
-                    result.request = requestJson
+                    result.request = requestJson.ReqAgencies
                 } catch (error) {
                     console.error(error)
                 }
@@ -321,9 +319,9 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
                     }
-                    for(var i = 0; i < estimationJson.length; i++) {
-                        for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                            for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                    for (var i = 0; i < estimationJson.length; i++) {
+                        for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                            for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
                                 estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
                             }
                         }
@@ -372,33 +370,31 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
                 if (filter.includes('request')) {
                     try {
-                        const request = await Request.findAll({
-                            where: {
-                                name: {
-                                    [Op.iLike]: `%${keyword}%`
-                                }
-                            },
+                        const request = await Agency.findByPk(associatedId, {
                             include: [
                                 {
                                     model: ReqAgency,
                                     include: [{
                                         model: Request,
+                                        where: {
+                                            name: {
+                                                [Op.iLike]: `%${keyword}%`
+                                            }
+                                        },
                                         include: RequestTask
                                     }, Company, Estimation],
                                 }
                             ],
                         });
                         console.log(request)
-                        var requestJson = request.map(o => o.toJSON());
-                        for (var i = 0; i < requestJson.length; i++) {
-                            if (thisUser.type === 2) {
-                                requestJson[i].url = '/requests'
-                            }
-                            else {
-                                requestJson[i].url = '/my-requests'
+                        var requestJson = request.toJSON();
+                        for (var i = 0; i < requestJson.ReqAgencies.length; i++) {
+                            for(var j = 0; j < requestJson.ReqAgencies[i].Request.length; j++)
+                            {
+                                requestJson.ReqAgencies[i].Request[j].url = '/requests'
                             }
                         }
-                        result.request = requestJson
+                        result.request = requestJson.ReqAgencies
                     } catch (error) {
                         console.error(error)
                     }
@@ -439,9 +435,9 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                             }
                         }
-                        for(var i = 0; i < estimationJson.length; i++) {
-                            for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
-                                for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                        for (var i = 0; i < estimationJson.length; i++) {
+                            for (var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                                for (var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
                                     estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
                                 }
                             }
