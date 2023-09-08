@@ -77,7 +77,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 });
                 var agencyJson = agency.map(o => o.toJSON());
                 for (var i = 0; i < agencyJson.length; i++) {
-                    agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
+                    agencyJson[i].url = '/agency/' + agencyJson[i].id
                 }
                 result.agency = agencyJson
 
@@ -115,12 +115,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 var estimationJson = estimation.map(o => o.toJSON());
                 for (var i = 0; i < estimationJson.length; i++) {
                     if (thisUser.type === 2) {
-                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                        estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                     } else {
-                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                        estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                     }
                 }
-                console.log(estimationJson.length)
                 result.estimation = estimationJson
             }
             else {
@@ -140,7 +139,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     });
                     var agencyJson = agency.map(o => o.toJSON());
                     for (var i = 0; i < agencyJson.length; i++) {
-                        agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
+                        agencyJson[i].url = '/agency/' + agencyJson[i].id
                     }
                     result.agency = agencyJson
                 }
@@ -179,12 +178,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var estimationJson = estimation.map(o => o.toJSON());
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                         } else {
-                            estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
                     }
-                    console.log(estimationJson.length)
                     result.estimation = estimationJson
                 }
             }
@@ -210,7 +208,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var employeeJson = employee.map(o => o.toJSON());
                     for (var i = 0; i < employeeJson.length; i++) {
                         delete employeeJson[i].password
-                        employeeJson[i].url = frontendURL + '/employee/' + employeeJson[i].id
+                        employeeJson[i].url = '/employee/' + employeeJson[i].id
                     }
                     result.employee = employeeJson
                 }
@@ -224,7 +222,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 });
                 var agencyJson = agency.map(o => o.toJSON());
                 for (var i = 0; i < agencyJson.length; i++) {
-                    agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
+                    agencyJson[i].url = '/agency/' + agencyJson[i].id
                 }
                 result.agency = agencyJson
 
@@ -255,10 +253,10 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 var requestJson = request.map(o => o.toJSON());
                 for (var i = 0; i < requestJson.length; i++) {
                     if (thisUser.type === 2) {
-                        requestJson[i].url = frontendURL + '/requests'
+                        requestJson[i].url = '/requests'
                     }
                     else {
-                        requestJson[i].url = frontendURL + '/my-requests'
+                        requestJson[i].url = '/my-requests'
                     }
                 }
                 result.request = requestJson
@@ -289,12 +287,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 var estimationJson = estimation.map(o => o.toJSON());
                 for (var i = 0; i < estimationJson.length; i++) {
                     if (thisUser.type === 2) {
-                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                        estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                     } else {
-                        estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                        estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                     }
                 }
-                console.log(estimationJson)
                 result.estimation = estimationJson
             }
             else {
@@ -315,7 +312,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var employeeJson = employee.map(o => o.toJSON());
                     for (var i = 0; i < employeeJson.length; i++) {
                         delete employeeJson[i].password
-                        employeeJson[i].url = frontendURL + '/employee/' + employeeJson[i].id
+                        employeeJson[i].url = '/employee/' + employeeJson[i].id
                     }
                     result.employee = employeeJson
                 }
@@ -330,7 +327,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     });
                     var agencyJson = agency.map(o => o.toJSON());
                     for (var i = 0; i < agencyJson.length; i++) {
-                        agencyJson[i].url = frontendURL + '/agency/' + agencyJson[i].id
+                        agencyJson[i].url = '/agency/' + agencyJson[i].id
                     }
                     result.agency = agencyJson
                 }
@@ -362,10 +359,10 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var requestJson = request.map(o => o.toJSON());
                     for (var i = 0; i < requestJson.length; i++) {
                         if (thisUser.type === 2) {
-                            requestJson[i].url = frontendURL + '/requests'
+                            requestJson[i].url = '/requests'
                         }
                         else {
-                            requestJson[i].url = frontendURL + '/my-requests'
+                            requestJson[i].url = '/my-requests'
                         }
                     }
                     result.request = requestJson
@@ -397,12 +394,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var estimationJson = estimation.map(o => o.toJSON());
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                         } else {
-                            estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
                     }
-                    console.log(estimationJson)
                     result.estimation = estimationJson
                 }
             }
