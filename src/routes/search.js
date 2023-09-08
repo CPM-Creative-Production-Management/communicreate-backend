@@ -124,6 +124,13 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
                     }
+                    for(var i = 0; i < estimationJson.length; i++) {
+                        for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                            for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                                estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                            }
+                        }
+                    }
                     result.estimation = estimationJson
                 } catch (error) {
                     console.error(error)
@@ -192,6 +199,13 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                             } else {
                                 estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                            }
+                        }
+                        for(var i = 0; i < estimationJson.length; i++) {
+                            for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                                for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                                    estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                                }
                             }
                         }
                         result.estimation = estimationJson
@@ -307,6 +321,13 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
                     }
+                    for(var i = 0; i < estimationJson.length; i++) {
+                        for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                            for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                                estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                            }
+                        }
+                    }
                     result.estimation = estimationJson
                 } catch (error) {
                     console.error(error)
@@ -416,6 +437,13 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                             } else {
                                 estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
+                            }
+                        }
+                        for(var i = 0; i < estimationJson.length; i++) {
+                            for(var j = 0; j < estimationJson[i].Tasks.length; j++) {
+                                for(var k = 0; k < estimationJson[i].Tasks[j].Employees.length; k++) {
+                                    estimationJson[i].Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Tasks[j].Employees[k].id
+                                }
                             }
                         }
                         result.estimation = estimationJson
