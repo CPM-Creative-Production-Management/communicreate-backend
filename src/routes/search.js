@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
-const { Request, Company, Agency, ReqAgency, Tag, Estimation, User } = require('../models/associations')
+const { Request, Company, Agency, ReqAgency, RequestTask, Tag, Estimation, User, Task, Employee } = require('../models/associations')
 const { Op } = require('sequelize');
 const frontendURL = process.env.FRONTEND_URL
 
@@ -81,46 +81,53 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
                 result.agency = agencyJson
 
-                const estimation = await Estimation.findAll({
-                    include: [
-                        {
-                            model: ReqAgency,
-                            attributes: ['AgencyId', 'CompanyId', 'RequestId'],
-                            where: {
-                                [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                            },
-                            include: [
+                try {
+                    const estimation = await Estimation.findAll({
+                        include:
+                            [
                                 {
-                                    model: Agency
+                                    model: ReqAgency,
+                                    where: {
+                                        [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
+                                    },
+                                    include:
+                                        [
+                                            {
+                                                model: Request,
+                                                where: reqCondition
+                                            }
+                                        ]
                                 },
                                 {
-                                    model: Company
+                                    model: Task,
+                                    include: {
+                                        model: Employee,
+                                        through: false
+                                    }
                                 },
                                 {
-                                    model: Request,
-                                    where: reqCondition
+                                    model: Tag,
+                                    where: {
+                                        id: {
+                                            [Op.in]: searchTags
+                                        }
+                                    }
                                 }
                             ],
-                        },
-                        {
-                            model: Tag,
-                            where: {
-                                id: {
-                                    [Op.in]: searchTags
-                                }
-                            }
+                    });
+                    console.log(estimation)
+                    var estimationJson = estimation.map(o => o.toJSON());
+                    for (var i = 0; i < estimationJson.length; i++) {
+                        if (thisUser.type === 2) {
+                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                        } else {
+                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
-                    ],
-                });
-                var estimationJson = estimation.map(o => o.toJSON());
-                for (var i = 0; i < estimationJson.length; i++) {
-                    if (thisUser.type === 2) {
-                        estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
-                    } else {
-                        estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                     }
+                    result.estimation = estimationJson
+                } catch (error) {
+                    console.error(error)
                 }
-                result.estimation = estimationJson
             }
             else {
                 if (filter.includes('agency')) {
@@ -144,46 +151,53 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     result.agency = agencyJson
                 }
                 if (filter.includes('estimation')) {
-                    const estimation = await Estimation.findAll({
-                        include: [
-                            {
-                                model: ReqAgency,
-                                attributes: ['AgencyId', 'CompanyId', 'RequestId'],
-                                where: {
-                                    [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                },
-                                include: [
+                    try {
+                        const estimation = await Estimation.findAll({
+                            include:
+                                [
                                     {
-                                        model: Agency
+                                        model: ReqAgency,
+                                        where: {
+                                            [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
+                                        },
+                                        include:
+                                            [
+                                                {
+                                                    model: Request,
+                                                    where: reqCondition
+                                                }
+                                            ]
                                     },
                                     {
-                                        model: Company
+                                        model: Task,
+                                        include: {
+                                            model: Employee,
+                                            through: false
+                                        }
                                     },
                                     {
-                                        model: Request,
-                                        where: reqCondition
+                                        model: Tag,
+                                        where: {
+                                            id: {
+                                                [Op.in]: searchTags
+                                            }
+                                        }
                                     }
                                 ],
-                            },
-                            {
-                                model: Tag,
-                                where: {
-                                    id: {
-                                        [Op.in]: searchTags
-                                    }
-                                }
+                        });
+                        console.log(estimation)
+                        var estimationJson = estimation.map(o => o.toJSON());
+                        for (var i = 0; i < estimationJson.length; i++) {
+                            if (thisUser.type === 2) {
+                                estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                            } else {
+                                estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                             }
-                        ],
-                    });
-                    var estimationJson = estimation.map(o => o.toJSON());
-                    for (var i = 0; i < estimationJson.length; i++) {
-                        if (thisUser.type === 2) {
-                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
-                        } else {
-                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
+                        result.estimation = estimationJson
+                    } catch (error) {
+                        console.error(error)
                     }
-                    result.estimation = estimationJson
                 }
             }
         }
@@ -226,73 +240,77 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
                 result.agency = agencyJson
 
-                const request = await Request.findAll({
-                    where: {
-                        name: {
-                            [Op.iLike]: `%${keyword}%`
-                        }
-                    },
-                    include: [
-                        {
-                            model: ReqAgency,
-                            attributes: ['AgencyId', 'CompanyId'],
-                            where: {
-                                [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                            },
-                            include: [
-                                {
-                                    model: Agency
-                                },
-                                {
-                                    model: Company
-                                },
-                            ]
+                try {
+                    const request = await Request.findAll({
+                        where: {
+                            name: {
+                                [Op.iLike]: `%${keyword}%`
+                            }
                         },
-                    ],
-                });
-                var requestJson = request.map(o => o.toJSON());
-                for (var i = 0; i < requestJson.length; i++) {
-                    if (thisUser.type === 2) {
-                        requestJson[i].url = '/requests'
-                    }
-                    else {
-                        requestJson[i].url = '/my-requests'
-                    }
-                }
-                result.request = requestJson
-
-                const estimation = await Estimation.findAll({
-                    include: [
-                        {
-                            model: ReqAgency,
-                            attributes: ['AgencyId', 'CompanyId', 'RequestId'],
-                            where: {
-                                [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                            },
-                            include: [
-                                {
-                                    model: Agency
-                                },
-                                {
-                                    model: Company
-                                },
-                                {
+                        include: [
+                            {
+                                model: ReqAgency,
+                                include: [{
                                     model: Request,
-                                    where: reqCondition
+                                    include: RequestTask
+                                }, Company, Estimation],
+                            }
+                        ],
+                    });
+                    console.log(request)
+                    var requestJson = request.map(o => o.toJSON());
+                    for (var i = 0; i < requestJson.length; i++) {
+                        if (thisUser.type === 2) {
+                            requestJson[i].url = '/requests'
+                        }
+                        else {
+                            requestJson[i].url = '/my-requests'
+                        }
+                    }
+                    result.request = requestJson
+                } catch (error) {
+                    console.error(error)
+                }
+
+                try {
+                    const estimation = await Estimation.findAll({
+                        include:
+                            [
+                                {
+                                    model: ReqAgency,
+                                    where: {
+                                        [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
+                                    },
+                                    include:
+                                        [
+                                            {
+                                                model: Request,
+                                                where: reqCondition
+                                            }
+                                        ]
+                                },
+                                {
+                                    model: Task,
+                                    include: {
+                                        model: Employee,
+                                        through: false
+                                    }
                                 }
                             ],
+                    });
+                    console.log(estimation)
+                    var estimationJson = estimation.map(o => o.toJSON());
+                    for (var i = 0; i < estimationJson.length; i++) {
+                        if (thisUser.type === 2) {
+                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                        } else {
+                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
-                    ],
-                });
-                var estimationJson = estimation.map(o => o.toJSON());
-                for (var i = 0; i < estimationJson.length; i++) {
-                    if (thisUser.type === 2) {
-                        estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
-                    } else {
-                        estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                     }
+                    result.estimation = estimationJson
+                } catch (error) {
+                    console.error(error)
                 }
-                result.estimation = estimationJson
             }
             else {
                 // send only filtered results
@@ -332,74 +350,78 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     result.agency = agencyJson
                 }
                 if (filter.includes('request')) {
-                    const request = await Request.findAll({
-                        where: {
-                            name: {
-                                [Op.iLike]: `%${keyword}%`
-                            }
-                        },
-                        include: [
-                            {
-                                model: ReqAgency,
-                                attributes: ['AgencyId', 'CompanyId'],
-                                where: {
-                                    [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                },
-                                include: [
-                                    {
-                                        model: Agency
-                                    },
-                                    {
-                                        model: Company
-                                    },
-                                ]
+                    try {
+                        const request = await Request.findAll({
+                            where: {
+                                name: {
+                                    [Op.iLike]: `%${keyword}%`
+                                }
                             },
-                        ],
-                    });
-                    var requestJson = request.map(o => o.toJSON());
-                    for (var i = 0; i < requestJson.length; i++) {
-                        if (thisUser.type === 2) {
-                            requestJson[i].url = '/requests'
+                            include: [
+                                {
+                                    model: ReqAgency,
+                                    include: [{
+                                        model: Request,
+                                        include: RequestTask
+                                    }, Company, Estimation],
+                                }
+                            ],
+                        });
+                        console.log(request)
+                        var requestJson = request.map(o => o.toJSON());
+                        for (var i = 0; i < requestJson.length; i++) {
+                            if (thisUser.type === 2) {
+                                requestJson[i].url = '/requests'
+                            }
+                            else {
+                                requestJson[i].url = '/my-requests'
+                            }
                         }
-                        else {
-                            requestJson[i].url = '/my-requests'
-                        }
+                        result.request = requestJson
+                    } catch (error) {
+                        console.error(error)
                     }
-                    result.request = requestJson
                 }
                 if (filter.includes('estimation')) {
-                    const estimation = await Estimation.findAll({
-                        include: [
-                            {
-                                model: ReqAgency,
-                                attributes: ['AgencyId', 'CompanyId', 'RequestId'],
-                                where: {
-                                    [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
-                                },
-                                include: [
+                    try {
+                        const estimation = await Estimation.findAll({
+                            include:
+                                [
                                     {
-                                        model: Agency
+                                        model: ReqAgency,
+                                        where: {
+                                            [Op.or]: [{ AgencyId: associatedId }, { CompanyId: associatedId }]
+                                        },
+                                        include:
+                                            [
+                                                {
+                                                    model: Request,
+                                                    where: reqCondition
+                                                }
+                                            ]
                                     },
                                     {
-                                        model: Company
-                                    },
-                                    {
-                                        model: Request,
-                                        where: reqCondition
+                                        model: Task,
+                                        include: {
+                                            model: Employee,
+                                            through: false
+                                        }
                                     }
                                 ],
+                        });
+                        console.log(estimation)
+                        var estimationJson = estimation.map(o => o.toJSON());
+                        for (var i = 0; i < estimationJson.length; i++) {
+                            if (thisUser.type === 2) {
+                                estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
+                            } else {
+                                estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                             }
-                        ],
-                    });
-                    var estimationJson = estimation.map(o => o.toJSON());
-                    for (var i = 0; i < estimationJson.length; i++) {
-                        if (thisUser.type === 2) {
-                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
-                        } else {
-                            estimationJson[i].url = '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
+                        result.estimation = estimationJson
+                    } catch (error) {
+                        console.error(error)
                     }
-                    result.estimation = estimationJson
                 }
             }
         }
