@@ -115,7 +115,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 var estimationJson = estimation.map(o => o.toJSON());
                 for (var i = 0; i < estimationJson.length; i++) {
                     if (thisUser.type === 2) {
-                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                     } else {
                         estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                     }
@@ -179,7 +179,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var estimationJson = estimation.map(o => o.toJSON());
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                         } else {
                             estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
@@ -289,7 +289,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 var estimationJson = estimation.map(o => o.toJSON());
                 for (var i = 0; i < estimationJson.length; i++) {
                     if (thisUser.type === 2) {
-                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                        estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                     } else {
                         estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                     }
@@ -397,7 +397,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     var estimationJson = estimation.map(o => o.toJSON());
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].id
+                            estimationJson[i].url = frontendURL + '/edit-estimation/' + estimationJson[i].ReqAgency.RequestId
                         } else {
                             estimationJson[i].url = frontendURL + '/request/' + estimationJson[i].ReqAgency.RequestId + '/agency/' + estimationJson[i].ReqAgency.AgencyId + '/estimation'
                         }
