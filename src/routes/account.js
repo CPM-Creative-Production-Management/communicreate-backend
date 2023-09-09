@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const decodeToken = require('../utils/helper').decodeToken
 const { createUser } = require('../utils/helper')
 const { Agency, Company, User } = require('../models/associations')
+const {sendMail} = require('../utils/mail')
 
 router.post('/login', passport.authenticate('local', { session: false }), async (req, res) => {
     // Successful authentication
@@ -21,6 +22,9 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
     const email = req.user.get('email')
     // exclude password from user 
     const user = await User.findOne({where: {email: email}, attributes: {exclude: ['password', 'username', 'id']}})
+    if (!user.is_verified) {
+        return res.status(401).json({message: 'User not verified'})
+    }
     if (user.type === 1) {
         const company = await Company.findByPk(user.associatedId)
         console.log(user.associatedId)
@@ -46,6 +50,7 @@ router.post('/signup', async (req, res, next) => {
     const password = req.body.password
     const type = req.body.type
     const associatedId = req.body.associatedId
+    
     const user = await User.findOne({where: {email: email}})
     if(user) {
         console.log(user)
@@ -56,7 +61,7 @@ router.post('/signup', async (req, res, next) => {
 
     if(createUser(name, email, password, type, associatedId)) {
         return res.status(200).json({
-            message: 'User successfully created'
+            message: 'Verification email sent'
         })
     } else {
         return res.status(401).json({
@@ -112,6 +117,25 @@ router.put('/profile', passport.authenticate('jwt', { session: false }), async (
         }
 
         res.status(200).json({message: 'Successfully updated user', user: user})
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: 'Server error'})
+    }
+})
+
+// verify user
+router.get('/verify/:token', async (req, res) => {
+    const token = req.params.token
+    try {
+        const user = await User.findOne({where: {unique_string: token}})
+        if (!user) {
+            return res.status(401).json({message: 'Invalid token'})
+        }
+        if (user.is_verified) {
+            return res.status(200).json({message: 'User already verified'})
+        }
+        await user.update({is_verified: true})
+        return res.status(200).json({message: 'User verified'})
     } catch (err) {
         console.log(err)
         res.status(500).json({message: 'Server error'})

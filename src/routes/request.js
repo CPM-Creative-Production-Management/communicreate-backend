@@ -33,7 +33,14 @@ router.get('/pending', passport.authenticate('jwt', {session: false}), async (re
     const associatedId = decodedToken.associatedId;
     try {
         const agencies = await requestGetter(false, false, associatedId)
-
+        if (agencies === null) {
+            return res.json({
+                requests: [],
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0
+            })
+        } 
         // do pagination
         if (req.query.page) {
             const page = parseInt(req.query.page)
@@ -75,6 +82,14 @@ router.get('/accepted', passport.authenticate('jwt', {session: false}), async (r
     try {
         const agencies = await requestGetter(true, false, associatedId)
         console.log(agencies)
+        if (agencies === null) {
+            return res.json({
+                requests: [],
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0
+            })
+        } 
         if (agencies) {
             agencies.ReqAgencies.map(reqAgency => {
                 if (reqAgency.Estimation) {
@@ -367,7 +382,8 @@ router.post('/:id/accept', passport.authenticate('jwt', {session: false}), async
             const notification = await notificationUtils.sendCompanyNotification(
                 request.ReqAgencies[0].CompanyId,
                 `${agency.name} has accepted your request ${request.name}`,
-                null
+                null,
+                'request'
             )
             res.json(request)
         }
@@ -474,7 +490,8 @@ router.post('/agency/:id', passport.authenticate('jwt', {session: false}), async
         const notification = await notificationUtils.sendAgencyNotification(
             agencyId,
             `${company.name} has sent you a private request ${newRequest.name}`,
-            null
+            null,
+            'request'
         )
         res.json(newRequest)
     } catch (err) {
@@ -667,7 +684,8 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt'
             const notification = await notificationUtils.sendAgencyNotification(
                 agencyId,
                 `${user.name} from ${reqAgency.Company.name} has commented on your request ${reqAgency.Request.name}`,
-                null
+                null,
+                'comment'
             )
         }
         // send notification to the company if the user is an agency
@@ -675,7 +693,8 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt'
             const notification = await notificationUtils.sendCompanyNotification(
                 reqAgency.CompanyId,
                 `${user.name} from ${reqAgency.Agency.name} has commented on your request ${reqAgency.Request.name}`,
-                null
+                null,
+                'comment'
             )
         }
 
@@ -856,7 +875,8 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
         const notification = await notificationUtils.sendAgencyNotification(
             agencyId,
             `Your estimation for ${reqAgency.Request.name} from ${reqAgency.Company.name} has been finalized`,
-            null
+            null,
+            'estimation'
         )
 
         res.status(200).json({message: "request finalized successfully"})
