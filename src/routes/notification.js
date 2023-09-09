@@ -48,7 +48,8 @@ router.get('/', passport.authenticate('jwt', {session: false}), async (req, res)
             message: notification.message,
             link: notification.link,
             read: notification.UserNotifications.read,
-            createdAt: notification.createdAt
+            createdAt: notification.createdAt,
+            type: notification.type
         }
         notifications.push(notificationObject)
     }

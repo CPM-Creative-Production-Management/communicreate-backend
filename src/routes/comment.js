@@ -6,6 +6,8 @@ const { Agency, Request, ReqAgency, Company, RequestTask, Estimation, Task, Task
 const { getCommentsRecursive } = require('../utils/helper')
 const notificationUtils = require('../utils/notification')
 
+const frontendUrl = process.env.FRONTEND_URL
+
 router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const decodedToken = decodeToken(req)
     try {
@@ -57,7 +59,7 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
             const commentUser = await comment.getUser()
             const commentUserAssociation = await commentUser.getUserAssociated()
             const commentUserId = commentUser.id
-            const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, null)
+            const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, null, 'comment')
         }
         res.status(200).json({ 
             message: 'reply created successfully',
@@ -76,7 +78,7 @@ router.post('/:id(\\d+)/like', passport.authenticate('jwt', { session: false }),
     const decodedToken = decodeToken(req)
     try {
         const user = await User.findOne({ where: { email: decodedToken.email } })
-        const comment = await Comment.findOne({ where: { id: req.params.id }, include: { model: User } })
+        const comment = await Comment.findOne({ where: { id: req.params.id }, include: [{ model: User }, {model: ReqAgency, include: {model: Request}}]})
         const liked = await comment.hasLike(user)
         if (liked) {
             return res.status(400).json({ message: 'comment already liked' })
@@ -87,7 +89,11 @@ router.post('/:id(\\d+)/like', passport.authenticate('jwt', { session: false }),
             const commentUser = await comment.getUser()
             const commentUserAssociation = await commentUser.getUserAssociated()
             const commentUserId = commentUser.id
-            const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, null)
+            if (decodedToken.type === 1) {
+                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `request/${comment.ReqAgency.RequestId}/${comment.ReqAgency.AgencyId}`, 'comment')
+            } else {
+                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `edit-estimation/${comment.ReqAgency.RequestId}`, 'comment')
+            }
         }
         
         res.json({ message: 'comment liked successfully' })

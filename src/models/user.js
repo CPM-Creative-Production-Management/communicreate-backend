@@ -37,6 +37,13 @@ module.exports = function(sequelize, Sequelize) {
         },
         profile_picture: {
             type: DataTypes.STRING,
+        },
+        is_verified: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
+        unique_string: {
+            type: DataTypes.STRING,
         }
     },{
         timestamps: false,
