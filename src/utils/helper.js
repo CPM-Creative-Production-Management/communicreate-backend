@@ -5,16 +5,22 @@ const jwt = require('jsonwebtoken')
 // const Agency = require('../models/agency')
 // const Company = require('../models/company')
 const { Comment, Agency, Company } = require('../models/associations')
+const { sendMail } = require('./mail') 
+// import unique string generating
+const crypto = require("crypto");
 
 const createUser = async (name, email, password, type, associatedId) => {
     try {
+        const uniqueString = crypto.randomUUID({ disableEntropyCache: true })
         const newUser = await User.create({
           name: name,
           email: email,
           password: password,
           type: parseInt(type),
+          unique_string: uniqueString
         });
-        console.log('User created');
+        await sendMail(email, 'Verify your email', `Click on the link to verify your email: ${process.env.FRONTEND_URL}/verify/${uniqueString}`)
+    
         const typeInt = parseInt(type)
         if (typeInt === 1) {
           console.log('Adding user to company')

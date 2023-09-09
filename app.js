@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 const morgan = require('morgan')
 require('dotenv').config()
 const sequelize = require('./src/db/db')
+const schedule = require('./src/utils/cron')
 const { DataTypes, ABSTRACT } = require("sequelize")
 const cors = require('cors')
 // const User = require('./src/models/user')(sequelize, DataTypes)
@@ -25,6 +26,7 @@ const commentRouter = require('./src/routes/comment')
 const dashboardRouter = require('./src/routes/dashboard')
 const notificationRouter =  require('./src/routes/notification')
 const searchRouter = require('./src/routes/search')
+const { Op } = require("sequelize");
 const {Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User, Notification} = require('./src/models/associations')
 
 //Initializing express
@@ -69,12 +71,12 @@ app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
 app.listen(process.env.PORT, async () => {
     console.log(`Example app listening at http://localhost:${process.env.PORT}`)
     try{
-        await sequelize.sync(
-            // {alter: true}
-        )
-        // await Employee.sync({
-        //     alter: true
-        // })
+        // await sequelize.sync(
+        //     // {alter: true}
+        // )
+        await Notification.sync({
+            alter: true
+        })
         // console.log(typeof(x[0]))
         console.log("Database in sync with models. Clear to proceed.")
     }catch(error){
