@@ -62,25 +62,34 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
         if (searchTags.length > 0) {
             // if tags are specified, search for only agencies and estimations with those tags
             if (filter.length === 0) {
-                const agency = await Agency.findAll({
+
+                // find all agencies whose name this keyword matches with and have the specified tags
+                const agencies = await Agency.findAll({
                     where: agencyConditions,
-                    include: [
-                        {
-                            model: Tag,
-                            where: {
-                                id: {
-                                    [Op.in]: searchTags
-                                }
-                            },
+                    include: [{
+                        model: Tag,
+                        where: {
+                            id: {
+                                [Op.in]: searchTags
+                            }
                         }
-                    ]
-                });
-                var agencyJson = agency.map(o => o.toJSON());
+                    }]
+                })
+                agencies.forEach(agency => {
+                    agency.dataValues.key = agency.name
+                    agency.dataValues.value = agency.id
+                    agency.dataValues.text = agency.name
+                    agency.dataValues.details = agency.dataValues.description
+                    // remove description from dataValues
+                    delete agency.dataValues.description
+                })
+                var agencyJson = agencies.map(o => o.toJSON());
                 for (var i = 0; i < agencyJson.length; i++) {
                     agencyJson[i].url = '/agency/' + agencyJson[i].id
                 }
                 result.agency = agencyJson
 
+                // find all estimations whose name this keyword matches with and have the specified tags
                 try {
                     const agencies = await Agency.findByPk(associatedId, {
                         include: [
@@ -95,8 +104,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             }
                         ],
                     });
-                    console.log("=============================================================================================")
-                    console.log(agencies)
                     if (agencies === null) {
                         result.estimation = []
                     }
@@ -153,17 +160,19 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     console.log(estimationJson)
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
+                            //estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
                             estimationJson[i].url = '/edit-estimation/' + estimationJson[i].RequestId
                         } else {
-                            estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
+                            //estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                             estimationJson[i].url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                         }
                     }
                     for (var i = 0; i < estimationJson.length; i++) {
-                        for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
-                            for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
-                                estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                        if (estimationJson[i].Estimation.Tasks) {
+                            for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                                for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                    estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                                }
                             }
                         }
                     }
@@ -173,21 +182,29 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
             }
             else {
+                
                 if (filter.includes('agency')) {
-                    const agency = await Agency.findAll({
+                    // find all agencies whose name this keyword matches with
+                    const agencies = await Agency.findAll({
                         where: agencyConditions,
-                        include: [
-                            {
-                                model: Tag,
-                                where: {
-                                    id: {
-                                        [Op.in]: searchTags
-                                    }
-                                },
+                        include: [{
+                            model: Tag,
+                            where: {
+                                id: {
+                                    [Op.in]: searchTags
+                                }
                             }
-                        ]
-                    });
-                    var agencyJson = agency.map(o => o.toJSON());
+                        }]
+                    })
+                    agencies.forEach(agency => {
+                        agency.dataValues.key = agency.name
+                        agency.dataValues.value = agency.id
+                        agency.dataValues.text = agency.name
+                        agency.dataValues.details = agency.dataValues.description
+                        // remove description from dataValues
+                        delete agency.dataValues.description
+                    })
+                    var agencyJson = agencies.map(o => o.toJSON());
                     for (var i = 0; i < agencyJson.length; i++) {
                         agencyJson[i].url = '/agency/' + agencyJson[i].id
                     }
@@ -208,7 +225,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 }
                             ],
                         });
-                        console.log("=============================================================================================")
                         if (agencies === null) {
                             result.estimation = []
                         }
@@ -240,7 +256,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                     reqAgency.dataValues.estimationExists = false
                                 }
                             }
-    
+
                             // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
                             agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
                                 if (reqAgency.Estimation) {
@@ -248,7 +264,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 }
                                 return false
                             })
-    
+
                             // res.json(agencies.ReqAgencies)
                             // sort requests by date, show newest first
                             agencies.ReqAgencies.sort((a, b) => {
@@ -265,15 +281,17 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                         console.log(estimationJson)
                         for (var i = 0; i < estimationJson.length; i++) {
                             if (thisUser.type === 2) {
-                                estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
+                                estimationJson[i].url = '/edit-estimation/' + estimationJson[i].RequestId
                             } else {
-                                estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
+                                estimationJson[i].url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                             }
                         }
                         for (var i = 0; i < estimationJson.length; i++) {
-                            for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
-                                for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
-                                    estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                            if (estimationJson[i].Estimation.Tasks) {
+                                for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                                    for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                        estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                                    }
                                 }
                             }
                         }
@@ -311,14 +329,21 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
 
                 // find all agencies whose name this keyword matches with
-                const agency = await Agency.findAll({
-                    where: {
-                        name: {
-                            [Op.iLike]: `%${keyword}%`
-                        }
-                    }
-                });
-                var agencyJson = agency.map(o => o.toJSON());
+                const agencies = await Agency.findAll({
+                    where: agencyConditions,
+                    include: [{
+                        model: Tag
+                    }]
+                })
+                agencies.forEach(agency => {
+                    agency.dataValues.key = agency.name
+                    agency.dataValues.value = agency.id
+                    agency.dataValues.text = agency.name
+                    agency.dataValues.details = agency.dataValues.description
+                    // remove description from dataValues
+                    delete agency.dataValues.description
+                })
+                var agencyJson = agencies.map(o => o.toJSON());
                 for (var i = 0; i < agencyJson.length; i++) {
                     agencyJson[i].url = '/agency/' + agencyJson[i].id
                 }
@@ -368,7 +393,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             }
                         ],
                     });
-                    console.log("=============================================================================================")
                     if (agencies === null) {
                         result.estimation = []
                     }
@@ -417,15 +441,17 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     console.log(estimationJson)
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
-                            estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
+                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].RequestId
                         } else {
-                            estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
+                            estimationJson[i].url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                         }
                     }
                     for (var i = 0; i < estimationJson.length; i++) {
-                        for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
-                            for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
-                                estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                        if (estimationJson[i].Estimation.Tasks) {
+                            for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                                for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                    estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                                }
                             }
                         }
                     }
@@ -458,19 +484,28 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
 
                 if (filter.includes('agency')) {
-                    const agency = await Agency.findAll({
-                        where: {
-                            name: {
-                                [Op.iLike]: `%${keyword}%`
-                            }
-                        }
-                    });
-                    var agencyJson = agency.map(o => o.toJSON());
+                    // find all agencies whose name this keyword matches with
+                    const agencies = await Agency.findAll({
+                        where: agencyConditions,
+                        include: [{
+                            model: Tag
+                        }]
+                    })
+                    agencies.forEach(agency => {
+                        agency.dataValues.key = agency.name
+                        agency.dataValues.value = agency.id
+                        agency.dataValues.text = agency.name
+                        agency.dataValues.details = agency.dataValues.description
+                        // remove description from dataValues
+                        delete agency.dataValues.description
+                    })
+                    var agencyJson = agencies.map(o => o.toJSON());
                     for (var i = 0; i < agencyJson.length; i++) {
                         agencyJson[i].url = '/agency/' + agencyJson[i].id
                     }
                     result.agency = agencyJson
                 }
+
                 if (filter.includes('request')) {
                     try {
                         const request = await Agency.findByPk(associatedId, {
@@ -500,6 +535,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                         console.error(error)
                     }
                 }
+
                 if (filter.includes('estimation')) {
                     try {
                         const agencies = await Agency.findByPk(associatedId, {
@@ -515,7 +551,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 }
                             ],
                         });
-                        console.log("=============================================================================================")
                         if (agencies === null) {
                             result.estimation = []
                         }
@@ -539,7 +574,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                     reqAgency.dataValues.estimationExists = false
                                 }
                             }
-    
+
                             // if reqAgency has Estimation, filter the ones where Estimation.is_completed is true
                             agencies.ReqAgencies = agencies.ReqAgencies.filter(reqAgency => {
                                 if (reqAgency.Estimation) {
@@ -547,7 +582,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                 }
                                 return false
                             })
-    
+
                             // res.json(agencies.ReqAgencies)
                             // sort requests by date, show newest first
                             agencies.ReqAgencies.sort((a, b) => {
@@ -564,15 +599,17 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                         console.log(estimationJson)
                         for (var i = 0; i < estimationJson.length; i++) {
                             if (thisUser.type === 2) {
-                                estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
+                                estimationJson[i].url = '/edit-estimation/' + estimationJson[i].RequestId
                             } else {
-                                estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
+                                estimationJson[i].url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                             }
                         }
                         for (var i = 0; i < estimationJson.length; i++) {
-                            for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
-                                for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
-                                    estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                            if (estimationJson[i].Estimation.Tasks) {
+                                for (var j = 0; j < estimationJson[i].Estimation.Tasks.length; j++) {
+                                    for (var k = 0; k < estimationJson[i].Estimation.Tasks[j].Employees.length; k++) {
+                                        estimationJson[i].Estimation.Tasks[j].Employees[k].url = '/employee/' + estimationJson[i].Estimation.Tasks[j].Employees[k].id
+                                    }
                                 }
                             }
                         }
