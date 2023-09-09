@@ -173,13 +173,96 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             }]
         })
 
+        // send data for pie chart. X-axis: Year, Y-axis: Number of finalized requests
+        const requests = await Request.findAll({
+            include: [
+                {
+                    model: ReqAgency,
+                    where: {
+                        AgencyId: associatedId,
+                        accepted: true,
+                        finalized: true
+                    },
+                    include: {
+                        model: Estimation,
+                        where: {
+                            is_rejected: false
+                        }
+                    }
+                }
+            ],
+            attributes: ['comp_deadline']
+        })
+
+        // Loop through the fetched requests and group them by year
+        const requestsByYear = {};
+        requests.forEach(request => {
+            const compDeadline = request.get('comp_deadline');
+            if (compDeadline) {
+                const dateObj = new Date(compDeadline);
+                const year = dateObj.getFullYear();
+                if (requestsByYear[year]) {
+                    requestsByYear[year]++;
+                } else {
+                    requestsByYear[year] = 1;
+                }
+            }
+        });
+
+        // Convert the requestsByYear object into an array of objects with year and count properties
+        const dataForPieChart = Object.entries(requestsByYear).map(([year, projects]) => ({
+            year: parseInt(year),
+            projects,
+        }));
+
+        // send a Bar graph data. X-axis: Year, Y-axis: Sum of cost of all the estimations where is_completed=true.
+        const estimations = await Estimation.findAll({
+            attributes: ['createdAt', 'cost'],
+            where: {
+                is_rejected: false
+            },
+            include: {
+                model: ReqAgency,
+                where: {
+                    AgencyId: associatedId,
+                    accepted: true,
+                    finalized: true
+                }
+            },
+        })
+        console.log(estimations)
+
+        // Loop through the fetched requests and group them by year
+        const estimationsByYear = {};
+        estimations.forEach(estimation => {
+            const createdAt = estimation.get('createdAt');
+            if (createdAt) {
+                const dateObj = new Date(createdAt);
+                const year = dateObj.getFullYear();
+                if (estimationsByYear[year]) {
+                    estimationsByYear[year] += estimation.get('cost');
+                } else {
+                    estimationsByYear[year] = estimation.get('cost');
+                }
+            }
+        });
+
+        // Convert the requestsByYear object into an array of objects with year and count properties
+        const dataForBarChart = Object.entries(estimationsByYear).map(([year, budget]) => ({
+            year: parseInt(year),
+            budget,
+        }));
+
+
+
         response.ongoingProjects = ongoingProjects
         response.completedProjects = completedProjects
         response.rejectedProjects = rejectedProjects
         response.review = rawReviews
+        response.pieChart = dataForPieChart
+        response.barChart = dataForBarChart
     }
     res.send(response)
 })
-
 
 module.exports = router
