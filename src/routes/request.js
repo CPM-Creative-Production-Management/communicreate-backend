@@ -994,6 +994,15 @@ router.get('/company/ongoing', passport.authenticate('jwt', {session: false}), a
     ],
     })
 
+    if (reply === null) {
+        return res.json({
+            requests: [],
+            nextPage: null,
+            prevPage: null,
+            totalPages: 0
+        })
+    }
+
     reply.ReqAgencies = reply.ReqAgencies.filter(reqAgency => {
         if (reqAgency.Estimation) {
             return true

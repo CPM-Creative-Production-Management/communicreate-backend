@@ -17,6 +17,13 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 model: ReqAgency,
                 where: {
                     CompanyId: associatedId,
+                },
+                include: {
+                    model: Estimation,
+                    where: {
+                        is_completed: false,
+                        is_rejected: false
+                    }
                 }
             }
         })
