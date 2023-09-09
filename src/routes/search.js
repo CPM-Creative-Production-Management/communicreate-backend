@@ -154,8 +154,10 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     for (var i = 0; i < estimationJson.length; i++) {
                         if (thisUser.type === 2) {
                             estimationJson[i].Estimation.url = '/edit-estimation/' + estimationJson[i].RequestId
+                            estimationJson[i].url = '/edit-estimation/' + estimationJson[i].RequestId
                         } else {
                             estimationJson[i].Estimation.url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
+                            estimationJson[i].url = '/request/' + estimationJson[i].RequestId + '/agency/' + estimationJson[i].AgencyId + '/estimation'
                         }
                     }
                     for (var i = 0; i < estimationJson.length; i++) {
