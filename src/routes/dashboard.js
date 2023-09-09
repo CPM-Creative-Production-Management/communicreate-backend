@@ -3,7 +3,7 @@ const router = express.Router();
 const passport = require('passport')
 const { decodeToken } = require('../utils/helper')
 const { Agency, Company, Request, ReqAgency, Estimation, Review } = require('../models/associations')
-
+const Sequelize = require('sequelize');
 
 router.get('/', passport.authenticate('jwt', { session: false }), async (req, res) => {
     const decodedToken = decodeToken(req)
@@ -230,7 +230,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
             },
         })
-        console.log(estimations)
 
         // Loop through the fetched requests and group them by year
         const estimationsByYear = {};
@@ -253,6 +252,112 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             budget,
         }));
 
+        // send data for line chart. X-axis: Year, Y-axis: Number of accepted requests VS Number of rejected requests
+        const acceptedRequests = await Request.findAll({
+            include: [
+                {
+                    model: ReqAgency,
+                    where: {
+                        AgencyId: associatedId,
+                        accepted: true,
+                        finalized: true
+                    },
+                    include: {
+                        model: Estimation,
+                        where: {
+                            is_rejected: false
+                        }
+                    }
+                }
+            ],
+            attributes: ['comp_deadline']
+        })
+
+        const rejectedRequests = await Request.findAll({
+            include: [
+                {
+                    model: ReqAgency,
+                    where: {
+                        AgencyId: associatedId,
+                        accepted: true,
+                        finalized: true
+                    },
+                    include: {
+                        model: Estimation,
+                        where: {
+                            is_completed: false,
+                            is_rejected: true
+                        }
+                    }
+                }
+            ],
+            attributes: ['comp_deadline']
+        })
+
+        // Loop through the fetched requests and group them by year
+        const acceptedRequestsByYear = {};
+        acceptedRequests.forEach(request => {
+            const compDeadline = request.get('comp_deadline');
+            if (compDeadline) {
+                const dateObj = new Date(compDeadline);
+                const year = dateObj.getFullYear();
+                if (acceptedRequestsByYear[year]) {
+                    acceptedRequestsByYear[year]++;
+                } else {
+                    acceptedRequestsByYear[year] = 1;
+                }
+            }
+        });
+
+        // Loop through the fetched requests and group them by year
+        const rejectedRequestsByYear = {};
+        rejectedRequests.forEach(request => {
+            const compDeadline = request.get('comp_deadline');
+            if (compDeadline) {
+                const dateObj = new Date(compDeadline);
+                const year = dateObj.getFullYear();
+                if (rejectedRequestsByYear[year]) {
+                    rejectedRequestsByYear[year]++;
+                } else {
+                    rejectedRequestsByYear[year] = 1;
+                }
+            }
+        });
+
+        const requestsByYear2 = {};
+
+        // Loop through acceptedRequests and populate the requestsByYear2 object
+        acceptedRequests.forEach(request => {
+            const compDeadline = request.get('comp_deadline');
+            if (compDeadline) {
+                const year = new Date(compDeadline).getFullYear();
+                if (!requestsByYear2[year]) {
+                    requestsByYear2[year] = { accepted: 0, rejected: 0 };
+                }
+                requestsByYear2[year].accepted++;
+            }
+        });
+
+        // Loop through rejectedRequests and update the requestsByYear2 object
+        rejectedRequests.forEach(request => {
+            const compDeadline = request.get('comp_deadline');
+            if (compDeadline) {
+                const year = new Date(compDeadline).getFullYear();
+                if (!requestsByYear2[year]) {
+                    requestsByYear2[year] = { accepted: 0, rejected: 0 };
+                }
+                requestsByYear2[year].rejected++;
+            }
+        });
+
+        // Convert the requestsByYear2 object into an array of objects with year, accepted, and rejected properties
+        const dataForLineChart = Object.entries(requestsByYear2).map(([year, counts]) => ({
+            year: parseInt(year),
+            accepted: counts.accepted || 0,
+            rejected: counts.rejected || 0,
+        }));
+        console.log(dataForLineChart)
+
 
 
         response.ongoingProjects = ongoingProjects
@@ -261,6 +366,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
         response.review = rawReviews
         response.pieChart = dataForPieChart
         response.barChart = dataForBarChart
+        response.lineChart = dataForLineChart
     }
     res.send(response)
 })
