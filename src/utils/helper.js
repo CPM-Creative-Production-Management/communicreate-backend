@@ -79,7 +79,7 @@ const getCommentsRecursive = async (comment) => {
     for (let i = 0; i < replies.length; i++) {
       const reply = replies[i]
       const user = await reply.getUser({
-        attributes: ['id', 'name', 'email', 'type']
+        attributes: ['id', 'name', 'email', 'type', 'profile_picture']
       })
       const association = await user.getUserAssociated()
       reply.dataValues.User = user

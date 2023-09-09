@@ -12,7 +12,7 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
     const decodedToken = decodeToken(req)
     try {
         const user = await User.findOne({ where: { email: decodedToken.email } })
-        const comment = await Comment.findOne({ where: { id: req.params.id }, include: { model: User } })
+        const comment = await Comment.findOne({ where: { id: req.params.id }, include: [{ model: User }, { model: ReqAgency }] })
         const reply = await Comment.create({
             body: req.body.body,
             level: comment.dataValues.level + 1,
@@ -59,9 +59,14 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
             const commentUser = await comment.getUser()
             const commentUserAssociation = await commentUser.getUserAssociated()
             const commentUserId = commentUser.id
-            const notification = await notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, null, 'comment')
+            if (commentUser.type === 1) {
+                const notification = await notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, `/request/${comment.ReqAgency.RequestId}/agency/${comment.ReqAgency.AgencyId}/estimation`, 'comment')
+            } else {
+                const notification = await notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, null, `/edit-estimation/${comment.ReqAgency.RequestId}`, 'comment')
+            }
         }
         res.status(200).json({ 
+
             message: 'reply created successfully',
             
             comments: allComments
