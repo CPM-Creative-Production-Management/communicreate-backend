@@ -316,6 +316,9 @@ router.put('/finish/:id', passport.authenticate('jwt', {session: false}), async 
         },
         include: {
             model: ReqAgency,
+            include: {
+                model: Request
+            }
         }
     })
     if (estimation !== null) {

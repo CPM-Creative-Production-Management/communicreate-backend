@@ -314,10 +314,11 @@ router.post('/success', async (req, res) => {
                     }
                 }
             })
-            const notification = notificationUtils.sendAgencyNotification(
+
+            const notification = await notificationUtils.sendAgencyNotification(
                 updated_payment2.AgencyId,
                 `Received payment of BDT ${updated_payment_history.amount} from ${company.name} for project ${estimation.ReqAgency.Request.name}`,
-                null,
+                '/dues',
                 'payment'
             )
 
