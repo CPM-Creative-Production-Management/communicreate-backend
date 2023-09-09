@@ -75,10 +75,11 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
         // send notification to the company
         const companyId = reqAgency.CompanyId
         const agency = await Agency.findByPk(reqAgency.AgencyId)
+
         const notification = await notificationUtils.sendCompanyNotification(
             companyId,
             `${agency.name} has sent you an estimation for your request ${reqAgency.Request.name}`,
-            null,
+            `/request/${reqAgency.RequestId}/agency/${reqAgency.AgencyId}/estimation`,
             'estimation'
         )
         res.status(200).json({message: "estimation created successfully"})
@@ -320,7 +321,8 @@ router.put('/finish/:id', passport.authenticate('jwt', {session: false}), async 
     if (estimation !== null) {
         estimation.is_completed = true;
         const agencyId = estimation.ReqAgency.AgencyId
-        await notificationUtils.sendAgencyNotification(agencyId, `Your project ${estimation.ReqAgency.Request.name} has been completed`, null, 'estimation')
+        await notificationUtils.sendAgencyNotification(agencyId, `Your project ${estimation.ReqAgency.Request.name} has been completed`,
+        `/edit-estimation/${estimation.ReqAgency.RequestId}`, 'estimation')
         await estimation.save()
     }
     res.json(estimation)
@@ -339,7 +341,7 @@ router.put('/discard/:id', passport.authenticate('jwt', {session: false}), async
     if (estimation !== null) {
         estimation.is_rejected = true;
         const agencyId = estimation.ReqAgency.AgencyId
-        await notificationUtils.sendAgencyNotification(agencyId, `Your project ${estimation.ReqAgency.Request.name} has been discarded`, null, 'estimation')
+        await notificationUtils.sendAgencyNotification(agencyId, `Your project ${estimation.ReqAgency.Request.name} has been discarded`, `/edit-estimation/${estimation.ReqAgency.RequestId}`, 'estimation')
         await estimation.save()
     }
     res.json(estimation)
@@ -481,7 +483,7 @@ router.put('/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (
     const notification = await notificationUtils.sendCompanyNotification(
         basicEstimation.ReqAgency.CompanyId,
         `${agency.name} has updated the estimation for your request ${basicEstimation.ReqAgency.Request.name}`,
-        null,
+        `/request/${basicEstimation.ReqAgency.RequestId}/agency/${basicEstimation.ReqAgency.AgencyId}/estimation`,
         'estimation'
     )
     res.json({"message": `updated ${estimationId}`})
@@ -599,14 +601,14 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
             notification = await notificationUtils.sendAgencyNotification(
                 agency.id,
                 `${user.name} from ${reqAgency.Company.name} has commented on your estimation for ${reqAgency.Request.name}`,
-                null,
+                `/edit-estimation/${reqAgency.RequestId}`,
                 'comment'
             )
         } else {
             notification = await notificationUtils.sendCompanyNotification(
                 company.id,
                 `${user.name} from ${reqAgency.Agency.name} has commented on your estimation for ${reqAgency.Request.name}`,
-                null,
+                `/request/${reqAgency.RequestId}/agency/${reqAgency.AgencyId}/estimation`,
                 'comment'
             )
         }
