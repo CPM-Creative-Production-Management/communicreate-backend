@@ -59,7 +59,7 @@ router.post('/:id(\\d+)/reply', passport.authenticate('jwt', { session: false })
             const commentUser = await comment.getUser()
             const commentUserAssociation = await commentUser.getUserAssociated()
             const commentUserId = commentUser.id
-            const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, null, 'comment')
+            const notification = await notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} replied to your comment on request ${reqAgency.Request.name}`, null, 'comment')
         }
         res.status(200).json({ 
             message: 'reply created successfully',
@@ -90,9 +90,9 @@ router.post('/:id(\\d+)/like', passport.authenticate('jwt', { session: false }),
             const commentUserAssociation = await commentUser.getUserAssociated()
             const commentUserId = commentUser.id
             if (decodedToken.type === 1) {
-                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `request/${comment.ReqAgency.RequestId}/${comment.ReqAgency.AgencyId}`, 'comment')
+                const notification = await notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `/request/${comment.ReqAgency.RequestId}/${comment.ReqAgency.AgencyId}`, 'comment')
             } else {
-                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `edit-estimation/${comment.ReqAgency.RequestId}`, 'comment')
+                const notification = await notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `/edit-estimation/${comment.ReqAgency.RequestId}`, 'comment')
             }
         }
         

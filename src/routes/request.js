@@ -382,7 +382,7 @@ router.post('/:id/accept', passport.authenticate('jwt', {session: false}), async
             const notification = await notificationUtils.sendCompanyNotification(
                 request.ReqAgencies[0].CompanyId,
                 `${agency.name} has accepted your request ${request.name}`,
-                null,
+                `/my-requests`,
                 'request'
             )
             res.json(request)
@@ -490,7 +490,7 @@ router.post('/agency/:id', passport.authenticate('jwt', {session: false}), async
         const notification = await notificationUtils.sendAgencyNotification(
             agencyId,
             `${company.name} has sent you a private request ${newRequest.name}`,
-            null,
+            `/requests`,
             'request'
         )
         res.json(newRequest)
@@ -683,8 +683,8 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt'
         if (decodedToken.type === 1) {
             const notification = await notificationUtils.sendAgencyNotification(
                 agencyId,
-                `${user.name} from ${reqAgency.Company.name} has commented on your request ${reqAgency.Request.name}`,
-                null,
+                `${user.name} from ${reqAgency.Company.name} has commented on their request ${reqAgency.Request.name}`,
+                `/edit-estimation/${reqAgency.RequestId}`,
                 'comment'
             )
         }
@@ -693,7 +693,7 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/comment', passport.authenticate('jwt'
             const notification = await notificationUtils.sendCompanyNotification(
                 reqAgency.CompanyId,
                 `${user.name} from ${reqAgency.Agency.name} has commented on your request ${reqAgency.Request.name}`,
-                null,
+                `/request/${reqAgency.RequestId}/agency/${reqAgency.AgencyId}/estimation`,
                 'comment'
             )
         }
@@ -875,7 +875,7 @@ router.post('/:rid(\\d+)/agency/:aid(\\d+)/finalize', passport.authenticate('jwt
         const notification = await notificationUtils.sendAgencyNotification(
             agencyId,
             `Your estimation for ${reqAgency.Request.name} from ${reqAgency.Company.name} has been finalized`,
-            null,
+            `/edit-estimation/${reqAgency.RequestId}`,
             'estimation'
         )
 
