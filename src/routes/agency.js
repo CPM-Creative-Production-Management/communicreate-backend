@@ -216,6 +216,7 @@ router.get('/dues', passport.authenticate('jwt', { session: false }), async (req
                 },
             ],
         });
+        console.log(paymentJson[i].id)
         paymentJson[i].projectName = project.Estimation.ReqAgency.Request.name;
     }
 

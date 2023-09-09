@@ -90,9 +90,9 @@ router.post('/:id(\\d+)/like', passport.authenticate('jwt', { session: false }),
             const commentUserAssociation = await commentUser.getUserAssociated()
             const commentUserId = commentUser.id
             if (decodedToken.type === 1) {
-                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `request/${comment.ReqAgency.RequestId}/${comment.ReqAgency.AgencyId}`, 'comment')
+                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `/request/${comment.ReqAgency.RequestId}/${comment.ReqAgency.AgencyId}`, 'comment')
             } else {
-                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `edit-estimation/${comment.ReqAgency.RequestId}`, 'comment')
+                const notification = notificationUtils.sendNotification(commentUserId, `${user.name} from ${commentUserAssociation.name} liked your comment on request ${comment.ReqAgency.Request.name}`, `/edit-estimation/${comment.ReqAgency.RequestId}`, 'comment')
             }
         }
         
