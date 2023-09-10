@@ -213,6 +213,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             attributes: ['res_deadline']
         })
 
+        const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'June',
+            'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
+        ];
+
         // Loop through the fetched requests and group them by month
         const requestsByMonth = {};
         const monthName = {};
@@ -221,10 +226,6 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             if (res_deadline) {
                 const dateObj = new Date(res_deadline);
                 const month = dateObj.getMonth();
-                const months = [
-                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'June',
-                    'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
-                  ];
                 monthName[month] = months[month];
                 if (requestsByMonth[month]) {
                     requestsByMonth[month]++;
@@ -256,24 +257,26 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             },
         })
 
-        // Loop through the fetched requests and group them by year
-        const estimationsByYear = {};
+        // Loop through the fetched estimations and group them by month
+        const estimationsByMonth = {};
+        const monthName2 = {};
         estimations.forEach(estimation => {
             const createdAt = estimation.get('createdAt');
             if (createdAt) {
                 const dateObj = new Date(createdAt);
-                const year = dateObj.getFullYear();
-                if (estimationsByYear[year]) {
-                    estimationsByYear[year] += estimation.get('cost');
+                const month = dateObj.getMonth() + 1;
+                monthName2[month] = months[month];
+                if (estimationsByMonth[month]) {
+                    estimationsByMonth[month] += estimation.get('cost');
                 } else {
-                    estimationsByYear[year] = estimation.get('cost');
+                    estimationsByMonth[month] = estimation.get('cost');
                 }
             }
         });
 
-        // Convert the requestsByYear object into an array of objects with year and count properties
-        const dataForBarChart = Object.entries(estimationsByYear).map(([year, budget]) => ({
-            year: parseInt(year),
+        // Convert the estimationsByMonth object into an array of objects with month and budget properties
+        const dataForBarChart = Object.entries(estimationsByMonth).map(([month, budget]) => ({
+            month: monthName2[month],
             budget,
         }));
 
