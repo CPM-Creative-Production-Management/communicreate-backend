@@ -286,7 +286,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     }
                 }
             ],
-            attributes: ['comp_deadline']
+            attributes: ['res_deadline']
         })
 
         const rejectedRequests = await Request.findAll({
@@ -307,68 +307,68 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     }
                 }
             ],
-            attributes: ['comp_deadline']
+            attributes: ['res_deadline']
         })
 
-        // Loop through the fetched requests and group them by year
-        const acceptedRequestsByYear = {};
+        // Loop through the fetched requests and group them by month
+        const acceptedRequestsByMonth = {};
         acceptedRequests.forEach(request => {
-            const compDeadline = request.get('comp_deadline');
-            if (compDeadline) {
-                const dateObj = new Date(compDeadline);
-                const year = dateObj.getFullYear();
-                if (acceptedRequestsByYear[year]) {
-                    acceptedRequestsByYear[year]++;
+            const resDeadline = request.get('res_deadline');
+            if (resDeadline) {
+                const dateObj = new Date(resDeadline);
+                const month = dateObj.getMonth();
+                if (acceptedRequestsByMonth[month]) {
+                    acceptedRequestsByMonth[month]++;
                 } else {
-                    acceptedRequestsByYear[year] = 1;
+                    acceptedRequestsByMonth[month] = 1;
                 }
             }
         });
 
-        // Loop through the fetched requests and group them by year
-        const rejectedRequestsByYear = {};
+        // Loop through the fetched requests and group them by month
+        const rejectedRequestsByMonth = {};
         rejectedRequests.forEach(request => {
-            const compDeadline = request.get('comp_deadline');
-            if (compDeadline) {
-                const dateObj = new Date(compDeadline);
-                const year = dateObj.getFullYear();
-                if (rejectedRequestsByYear[year]) {
-                    rejectedRequestsByYear[year]++;
+            const resDeadline = request.get('res_deadline');
+            if (resDeadline) {
+                const dateObj = new Date(resDeadline);
+                const month = dateObj.getMonth();
+                if (rejectedRequestsByMonth[month]) {
+                    rejectedRequestsByMonth[month]++;
                 } else {
-                    rejectedRequestsByYear[year] = 1;
+                    rejectedRequestsByMonth[month] = 1;
                 }
             }
         });
 
-        const requestsByYear2 = {};
+        const requestsByMonth2 = {};
 
-        // Loop through acceptedRequests and populate the requestsByYear2 object
+        // Loop through acceptedRequests and populate the requestsByMonth2 object
         acceptedRequests.forEach(request => {
-            const compDeadline = request.get('comp_deadline');
-            if (compDeadline) {
-                const year = new Date(compDeadline).getFullYear();
-                if (!requestsByYear2[year]) {
-                    requestsByYear2[year] = { accepted: 0, rejected: 0 };
+            const resDeadline = request.get('res_deadline');
+            if (resDeadline) {
+                const month = new Date(resDeadline).getMonth();
+                if (!requestsByMonth2[month]) {
+                    requestsByMonth2[month] = { accepted: 0, rejected: 0 };
                 }
-                requestsByYear2[year].accepted++;
+                requestsByMonth2[month].accepted++;
             }
         });
 
-        // Loop through rejectedRequests and update the requestsByYear2 object
+        // Loop through rejectedRequests and update the requestsByMonth2 object
         rejectedRequests.forEach(request => {
-            const compDeadline = request.get('comp_deadline');
-            if (compDeadline) {
-                const year = new Date(compDeadline).getFullYear();
-                if (!requestsByYear2[year]) {
-                    requestsByYear2[year] = { accepted: 0, rejected: 0 };
+            const resDeadline = request.get('res_deadline');
+            if (resDeadline) {
+                const month = new Date(resDeadline).getMonth();
+                if (!requestsByMonth2[month]) {
+                    requestsByMonth2[month] = { accepted: 0, rejected: 0 };
                 }
-                requestsByYear2[year].rejected++;
+                requestsByMonth2[month].rejected++;
             }
         });
 
-        // Convert the requestsByYear2 object into an array of objects with year, accepted, and rejected properties
-        const dataForLineChart = Object.entries(requestsByYear2).map(([year, counts]) => ({
-            year: parseInt(year),
+        // Convert the requestsByMonth2 object into an array of objects with month, accepted, and rejected properties
+        const dataForLineChart = Object.entries(requestsByMonth2).map(([month, counts]) => ({
+            monthName: months[parseInt(month)],
             accepted: counts.accepted || 0,
             rejected: counts.rejected || 0,
         }));
