@@ -180,7 +180,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             }]
         })
 
-        // send data for pie chart. X-axis: Year, Y-axis: Number of finalized requests
+        // send data for pie chart. X-axis: Month, Y-axis: Number of finalized requests
         const requests = await Request.findAll({
             include: [
                 {
@@ -198,27 +198,33 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                     }
                 }
             ],
-            attributes: ['comp_deadline']
+            attributes: ['res_deadline']
         })
 
-        // Loop through the fetched requests and group them by year
-        const requestsByYear = {};
+        // Loop through the fetched requests and group them by month
+        const requestsByMonth = {};
+        const monthName = {};
         requests.forEach(request => {
-            const compDeadline = request.get('comp_deadline');
-            if (compDeadline) {
-                const dateObj = new Date(compDeadline);
-                const year = dateObj.getFullYear();
-                if (requestsByYear[year]) {
-                    requestsByYear[year]++;
+            const res_deadline = request.get('res_deadline');
+            if (res_deadline) {
+                const dateObj = new Date(res_deadline);
+                const month = dateObj.getMonth();
+                const months = [
+                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'June',
+                    'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
+                  ];
+                monthName[month] = months[month];
+                if (requestsByMonth[month]) {
+                    requestsByMonth[month]++;
                 } else {
-                    requestsByYear[year] = 1;
+                    requestsByMonth[month] = 1;
                 }
             }
         });
 
-        // Convert the requestsByYear object into an array of objects with year and count properties
-        const dataForPieChart = Object.entries(requestsByYear).map(([year, projects]) => ({
-            year: parseInt(year),
+        // Convert the requestsByMonth object into an array of objects with month and count properties
+        const dataForPieChart = Object.entries(requestsByMonth).map(([month, projects]) => ({
+            month: monthName[month],
             projects,
         }));
 
