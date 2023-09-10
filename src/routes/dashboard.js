@@ -264,7 +264,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
             const createdAt = estimation.get('createdAt');
             if (createdAt) {
                 const dateObj = new Date(createdAt);
-                const month = dateObj.getMonth() + 1;
+                const month = dateObj.getMonth();
                 monthName2[month] = months[month];
                 if (estimationsByMonth[month]) {
                     estimationsByMonth[month] += estimation.get('cost');
