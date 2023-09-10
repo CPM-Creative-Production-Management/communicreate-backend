@@ -17,6 +17,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 model: ReqAgency,
                 where: {
                     CompanyId: associatedId,
+                    accepted: true,
                 },
                 include: {
                     model: Estimation,
@@ -27,7 +28,18 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
             }
         })
-        response.requests = requests.length
+
+        const newRequests = await Request.findAll({
+            include: {
+                model: ReqAgency,
+                where: {
+                    CompanyId: associatedId,
+                    accepted: false,
+                }
+            }
+        })
+        
+        response.requests = requests.length + newRequests.length
 
         const ongoingProjects = await Request.count({
             include: [{

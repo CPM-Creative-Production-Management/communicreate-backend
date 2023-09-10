@@ -71,12 +71,12 @@ app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
 app.listen(process.env.PORT, async () => {
     console.log(`Example app listening at http://localhost:${process.env.PORT}`)
     try{
-        // await sequelize.sync(
-        //     // {alter: true}
-        // )
-        await Notification.sync({
-            alter: true
-        })
+        await sequelize.sync(
+            // {alter: true}
+        )
+        // await Notification.sync({
+        //     alter: true
+        // })
         // console.log(typeof(x[0]))
         console.log("Database in sync with models. Clear to proceed.")
     }catch(error){
