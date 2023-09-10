@@ -594,6 +594,11 @@ router.post('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false})
             }
         })
 
+        const commentUser = await updatedComment.getUser()
+        const commentUserAssociation = await commentUser.getUserAssociated()
+        updatedComment.dataValues.User.dataValues.association = commentUserAssociation
+        console.log(commentUserAssociation)
+
         // send notification
         // if the user is a company, send notification to the agency
         // if the user is an agency, send notification to the company

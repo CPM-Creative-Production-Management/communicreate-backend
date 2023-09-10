@@ -134,6 +134,7 @@ router.put('/:id', passport.authenticate('jwt', {session: false}), async (req, r
     res.send(JSON.stringify(employee, null, 2))
 })
 
+
 router.delete('/:id', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const decodedToken = decodeToken(req)
     const associatedId = decodedToken.associatedId;
@@ -145,6 +146,7 @@ router.delete('/:id', passport.authenticate('jwt', {session: false}), async (req
                 id: employeeId
             }
         })
+
         const message = { message: `Deleted user ${employeeId} successfully`}
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify(message, null, 2))
