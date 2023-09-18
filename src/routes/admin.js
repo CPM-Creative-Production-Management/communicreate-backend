@@ -38,7 +38,7 @@ router.get('/logout', function (req, res, next) {
 
 router.get('/dashboard', passport.authenticate('jwt', { session: false }), async (req, res, next) => {
     const decodedToken = decodeToken(req)
-    const unverifiedUsers = await User.findAll({ where: { is_verified: false }, attributes: { exclude: ['password'] } })
+    const unverifiedUsers = await User.findAll({ where: { admin_approved: false }, attributes: { exclude: ['password'] } })
     var unverifiedUsersJson = unverifiedUsers.map(user => user.toJSON())
     for(var i = 0; i < unverifiedUsersJson.length; i++) {
         if(unverifiedUsersJson[i].type === 1) {
@@ -59,7 +59,7 @@ router.put('/verifyUser/:id(\\d+)', async (req, res, next) => {
     try {
         const user = await User.findByPk(id)
         await user.update({
-            is_verified: true
+            admin_approved: true
         })
         res.status(200).json({ message: 'Successfully updated user', user: user })
     } catch (err) {
@@ -68,6 +68,7 @@ router.put('/verifyUser/:id(\\d+)', async (req, res, next) => {
     }
 })
 
+// If admin does not verify a user, it means it is a fake account pretending to be a part of an Agency or Company. So, delete it.
 router.post('/rejectUser/:id(\\d+)', async (req, res, next) => {
     const id = req.params.id
     try {

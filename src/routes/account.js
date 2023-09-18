@@ -25,6 +25,9 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
     if (!user.is_verified) {
         return res.status(401).json({message: 'User not verified'})
     }
+    if (!user.admin_approved) {
+        return res.status(401).json({message: 'Please wait for admin approval'})
+    }
     if (user.type === 1) {
         const company = await Company.findByPk(user.associatedId)
         console.log(user.associatedId)
