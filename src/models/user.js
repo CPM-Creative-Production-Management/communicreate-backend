@@ -42,6 +42,10 @@ module.exports = function(sequelize, Sequelize) {
             type: DataTypes.BOOLEAN,
             defaultValue: false
         },
+        admin_approved: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
         unique_string: {
             type: DataTypes.STRING,
         }

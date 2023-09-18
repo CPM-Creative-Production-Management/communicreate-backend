@@ -37,15 +37,24 @@ router.get('/logout', function (req, res, next) {
 });
 
 router.get('/dashboard', passport.authenticate('jwt', { session: false }), async (req, res, next) => {
-    const decodedToken = decodeToken(req)
-    const unverifiedUsers = await User.findAll({ where: { admin_approved: false }, attributes: { exclude: ['password'] } })
+    const unverifiedUsers = await User.findAll({
+        where:
+        {
+            admin_approved: false,
+            is_verified: true
+        },
+        attributes:
+        {
+            exclude: ['password']
+        }
+    })
     var unverifiedUsersJson = unverifiedUsers.map(user => user.toJSON())
-    for(var i = 0; i < unverifiedUsersJson.length; i++) {
-        if(unverifiedUsersJson[i].type === 1) {
+    for (var i = 0; i < unverifiedUsersJson.length; i++) {
+        if (unverifiedUsersJson[i].type === 1) {
             const company = await Company.findByPk(unverifiedUsersJson[i].associatedId)
             unverifiedUsersJson[i].company = company
             unverifiedUsersJson[i].association = company
-        } else if(unverifiedUsersJson[i].type === 2) {
+        } else if (unverifiedUsersJson[i].type === 2) {
             const agency = await Agency.findByPk(unverifiedUsersJson[i].associatedId)
             unverifiedUsersJson[i].agency = agency
             unverifiedUsersJson[i].association = agency
@@ -73,7 +82,7 @@ router.post('/rejectUser/:id(\\d+)', async (req, res, next) => {
     const id = req.params.id
     try {
         await User.destroy({ where: { id: id } })
-        res.status(200).json({ message: 'Successfully deleted user'})
+        res.status(200).json({ message: 'Successfully deleted user' })
     } catch (err) {
         console.log(err)
         res.status(500).json({ message: 'Server error' })
