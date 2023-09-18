@@ -103,7 +103,8 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
         response.rejectedProjects = rejectedProjects
 
     }
-    else {
+    else if(type === 2)
+    {
         const agency = await Agency.findByPk(associatedId, {
             include: [
                 {
