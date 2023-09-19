@@ -88,6 +88,9 @@ router.get('/:id(\\d+)/details', passport.authenticate('jwt', { session: false }
         },
         include: [{
             model: Estimation,
+            include: [{
+                model: Task
+            }]
         }, {
             model: Request
         }, {
