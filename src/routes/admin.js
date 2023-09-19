@@ -13,7 +13,8 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
         username: req.user.get('username'),
         email: req.user.get('email'),
         type: req.user.get('type'),
-        associatedId: req.user.get('associatedId')
+        associatedId: req.user.get('associatedId'),
+        id: req.user.get('id')
     };
 
     // Generate a JWT with a secret key

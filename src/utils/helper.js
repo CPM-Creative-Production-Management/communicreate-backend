@@ -59,10 +59,8 @@ const decodeToken = (req) => {
 }
 
 const getCommentsRecursive = async (comment) => {
-  console.log(comment.dataValues.body)
   const user = await comment.getUser()
   const association = await user.getUserAssociated()
-  console.log(user.dataValues.type)
   comment.dataValues.User.dataValues.association = association
   const replies = await comment.getReplies({
     // order by created at
@@ -84,7 +82,6 @@ const getCommentsRecursive = async (comment) => {
       const association = await user.getUserAssociated()
       reply.dataValues.User = user
       reply.dataValues.User.dataValues.association = association
-      console.log('going to recursion')
       const replyReplies = await getCommentsRecursive(reply)
       replies[i].dataValues.replies = replyReplies
     }

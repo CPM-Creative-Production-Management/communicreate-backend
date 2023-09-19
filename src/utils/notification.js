@@ -1,6 +1,37 @@
 // notification helper functions
 const {Notification, Company, Agency} = require('../models/associations')
 const {User} = require('../models/associations')
+const { io } = require('../../express')
+const jwt = require('jsonwebtoken')
+
+var users = []
+
+io.on('connection', (socket) => {
+    console.log('a user connected');
+    socket.on('join', (token) => {
+        jwt.verify(token, 'catto', async (err, decoded) => {
+            if (err) {
+                console.log(err)
+                return
+            }
+            if (users.find(user => user.userId === decoded.id)) {
+                return
+            }
+            users.push({socketId: socket.id, userId: decoded.id})
+            console.log(users)
+        })
+    })
+    socket.on('disconnect', () => {
+        users = users.filter(user => user.socketId !== socket.id)
+    });
+})
+
+const sendToUserSocket = (userId, notification) => {
+    const userSocket = users.find(user => user.userId == userId)
+    if (userSocket) {
+        io.to(userSocket.socketId).emit('notification', notification)
+    }
+}
 
 // send notification to a user
 const sendNotification = async (userId, message, link, type) => {
@@ -11,6 +42,8 @@ const sendNotification = async (userId, message, link, type) => {
         type: type
     })
     await user.addNotification(notification)
+    console.log(userId)
+    sendToUserSocket(userId, notification)
     return notification
 }
 
@@ -25,6 +58,7 @@ const sendCompanyNotification = async (companyId, message, link, type) => {
     const users = await company.getUsers()
     for (let i = 0; i < users.length; i++) {
         await users[i].addNotification(notification)
+        sendToUserSocket(users[i].id, notification)
     }
     return notification
 }
@@ -40,6 +74,7 @@ const sendAgencyNotification = async (agencyId, message, link, type) => {
     const users = await agency.getUsers()
     for (let i = 0; i < users.length; i++) {
         await users[i].addNotification(notification)
+        sendToUserSocket(users[i].id, notification)
     }
     return notification
 }
@@ -54,6 +89,7 @@ const sendAllNotification = async (message, link, type) => {
     })
     for (let i = 0; i < users.length; i++) {
         await users[i].addNotification(notification)
+        sendToUserSocket(users[i].id, notification)
     }
     return notification
 }
@@ -70,6 +106,7 @@ const sendAllCompanyNotification = async (message, link, type) => {
         const users = await companies[i].getUsers()
         for (let j = 0; j < users.length; j++) {
             await users[j].addNotification(notification)
+            sendToUserSocket(users[j].id, notification)
         }
     }
     return notification
@@ -87,6 +124,7 @@ const sendAllAgencyNotification = async (message, link, type) => {
         const users = await agencies[i].getUsers()
         for (let j = 0; j < users.length; j++) {
             await users[j].addNotification(notification)
+            sendToUserSocket(users[j].id, notification)
         }
     }
     return notification
@@ -104,6 +142,7 @@ const sendCompanyNotificationExcept = async (companyId, userId, message, link, t
     for (let i = 0; i < users.length; i++) {
         if (users[i].id !== userId) {
             await users[i].addNotification(notification)
+            sendToUserSocket(users[i].id, notification)
         }
     }
     return notification
@@ -121,6 +160,7 @@ const sendAgencyNotificationExcept = async (agencyId, userId, message, link, typ
     for (let i = 0; i < users.length; i++) {
         if (users[i].id !== userId) {
             await users[i].addNotification(notification)
+            sendToUserSocket(users[i].id, notification)
         }
     }
     return notification

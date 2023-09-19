@@ -910,6 +910,7 @@ router.get('/company/finished', passport.authenticate('jwt', {session: false}), 
                     where: {
                         is_completed: true
                     },
+                    include: Task
                 },
                 {
                     model: Review
@@ -981,7 +982,8 @@ router.get('/company/ongoing', passport.authenticate('jwt', {session: false}), a
                     where: {
                         is_completed: false,
                         is_rejected: false
-                    }
+                    },
+                    include: Task
                 },
                 {
                     model: Review
@@ -1071,6 +1073,7 @@ router.get('/company/rejected', passport.authenticate('jwt', {session: false}), 
                     where: {
                         is_rejected: true
                     },
+                    include: Task
                 },
                 {
                     model: Review
@@ -1143,6 +1146,7 @@ router.get('/agency/finished', passport.authenticate('jwt', {session: false}), a
                     where: {
                         is_completed: true
                     },
+                    include: Task
                 },
                 {
                     model: Review
