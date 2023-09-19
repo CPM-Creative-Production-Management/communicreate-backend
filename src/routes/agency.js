@@ -36,16 +36,20 @@ router.get('/:id(\\d+)/details', passport.authenticate('jwt', { session: false }
             },
             {
                 model: ReqAgency,
-                include: [{
-                    model: Estimation,
-                    // where: {
-                    //     is_completed: true
-                    // }
-                }, {
-                    model: Review,
-                }, {
-                    model: Company
-                }]
+                include: [
+                    {
+                        model: Estimation,
+                        // where: {
+                        //     is_completed: true
+                        // }
+                    },
+                    {
+                        model: Review,
+                    },
+                    {
+                        model: Company
+                    }
+                ]
             }
         ]
     })

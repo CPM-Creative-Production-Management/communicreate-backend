@@ -24,10 +24,16 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
     // exclude password from user 
     const user = await User.findOne({where: {email: email}, attributes: {exclude: ['password', 'username', 'id']}})
     if (!user.is_verified) {
-        return res.status(401).json({message: 'User not verified'})
+        return res.json({
+            responseCode: 0,
+            message: 'Please verify your email'
+        })
     }
     if (!user.admin_approved) {
-        return res.status(401).json({message: 'Please wait for admin approval'})
+        return res.json({
+            responseCode: 0,
+            message: 'Please wait for admin approval'
+        })
     }
     if (user.type === 1) {
         const company = await Company.findByPk(user.associatedId)
@@ -40,7 +46,12 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
         user.dataValues.association = agency
     }
     // Send the JWT to the user
-    return res.json({ token, user });
+    return res.json({
+        responseCode: 1,
+        message: 'Successfully logged in',
+        token,
+        user,
+        });
   });
 
   router.get('/logout', function(req, res, next) {
