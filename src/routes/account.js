@@ -117,6 +117,10 @@ router.put('/profile', passport.authenticate('jwt', { session: false }), async (
                 user.dataValues.type = 'agency'
                 user.dataValues.association = agency
                 await agency.update(req.body.association)
+                const tags = req.body.association.tags
+                if (tags) {
+                    await agency.setTags(tags)
+                }
             }
         }
 
