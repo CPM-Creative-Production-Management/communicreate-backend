@@ -93,7 +93,7 @@ router.get('/profile', passport.authenticate('jwt', { session: false }), async (
     const user = await User.findOne({where: {email: decodedToken.email}})
     if(associatedType === 1) {
         // is a client, find company
-        const company = await Company.findByPk(associatedId, {include: Tag})
+        const company = await Company.findByPk(associatedId)
         user.dataValues.association = company
         user.dataValues.type = 'client'
         res.status(200).json(user)

@@ -29,6 +29,9 @@ const Task = sequelize.define('Task', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     },
+    sample_link: {
+        type: DataTypes.STRING,    
+    }
 }, {
     freezeTableName: true,
 })
