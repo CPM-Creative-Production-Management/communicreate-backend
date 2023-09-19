@@ -4,7 +4,7 @@ const passport = require('passport')
 const jwt = require('jsonwebtoken')
 const decodeToken = require('../utils/helper').decodeToken
 const { createUser } = require('../utils/helper')
-const { Agency, Company, User } = require('../models/associations')
+const { Agency, Company, User, Tag } = require('../models/associations')
 const {sendMail} = require('../utils/mail')
 
 router.post('/login', passport.authenticate('local', { session: false }), async (req, res) => {
@@ -82,14 +82,14 @@ router.get('/profile', passport.authenticate('jwt', { session: false }), async (
     const user = await User.findOne({where: {email: decodedToken.email}})
     if(associatedType === 1) {
         // is a client, find company
-        const company = await Company.findByPk(associatedId)
+        const company = await Company.findByPk(associatedId, {include: Tag})
         user.dataValues.association = company
         user.dataValues.type = 'client'
         res.status(200).json(user)
     }
     else if (associatedType === 2) {
         // is a professional, find agency
-        const agency = await Agency.findByPk(associatedId)
+        const agency = await Agency.findByPk(associatedId, {include: Tag})
         user.dataValues.association = agency
         user.dataValues.type = 'agency'
         res.status(200).json(user)
