@@ -27,6 +27,7 @@ const commentRouter = require('./src/routes/comment')
 const dashboardRouter = require('./src/routes/dashboard')
 const notificationRouter =  require('./src/routes/notification')
 const searchRouter = require('./src/routes/search')
+const taskRouter = require('./src/routes/task')
 const { Op } = require("sequelize");
 const {Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, RequestTask, Request, Tag, Task, TaskTag, Review, ReqAgency, User, Notification} = require('./src/models/associations')
 const { app, server } = require('./express')
@@ -58,6 +59,7 @@ app.use('/dashboard', dashboardRouter)
 app.use('/comment', commentRouter)
 app.use('/notification', notificationRouter)
 app.use('/search', searchRouter)
+app.use('/task', taskRouter)
 
 //Route
 app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -75,7 +77,7 @@ server.listen(process.env.PORT, async () => {
         await sequelize.sync(
             // {alter: true}
         )
-        // await Notification.sync({
+        // await Task.sync({
         //     alter: true
         // })
         // console.log(typeof(x[0]))
