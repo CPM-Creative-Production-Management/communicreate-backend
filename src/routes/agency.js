@@ -140,7 +140,7 @@ router.delete('/:id(\\d+)', passport.authenticate('jwt', { session: false }), as
             id: id
         }
     })
-    res.json(message)
+    res.status(200).json(message)
 })
 
 // get all dues of an agency
