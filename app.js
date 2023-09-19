@@ -5,6 +5,7 @@ require('dotenv').config()
 const sequelize = require('./src/db/db')
 const schedule = require('./src/utils/cron')
 const { DataTypes, ABSTRACT } = require("sequelize")
+const { createServer } = require('node:http');
 const cors = require('cors')
 // const User = require('./src/models/user')(sequelize, DataTypes)
 const passport = require('passport')
@@ -33,7 +34,17 @@ const {Agency, Comment, Company, Employee, Estimation, Payment, PaymentHistory, 
 //Initializing express
 const app = express()
 
+
 app.use(cors())
+
+// socket
+const { Server } = require("socket.io");
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:3002',
+    }
+});
 
 //Express Middleware
 app.use(express.json())
@@ -70,7 +81,15 @@ app.get('/', passport.authenticate('jwt', { session: false }), (req, res) => {
     }
 })
 
-app.listen(process.env.PORT, async () => {
+//Socket
+io.on('connection', (socket) => {
+    console.log('a user connected', socket.id)
+    socket.on('join', (data) => {
+        console.log(data)
+    })
+})
+
+server.listen(process.env.PORT, async () => {
     console.log(`Example app listening at http://localhost:${process.env.PORT}`)
     try{
         await sequelize.sync(
