@@ -678,6 +678,7 @@ router.get('/:id(\\d+)/comment', passport.authenticate('jwt', {session: false}),
 
 router.put('/task/request/:id(\\d+)', passport.authenticate('jwt', {session: false}), async (req, res) => {
     const id = req.params.id
+    const sample_link = req.body.sample_link
     try {
         const task = await Task.findByPk(id)
         if (task === null) {
@@ -691,6 +692,7 @@ router.put('/task/request/:id(\\d+)', passport.authenticate('jwt', {session: fal
         }
 
         task.status = 1
+        task.sample_link = sample_link
         await task.save()
         return res.status(200).json({message: "task status updated successfully"})
     } catch (err) {
