@@ -370,8 +370,14 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                     model: Estimation,
                                     where: {
                                         is_completed: false
-                                    }
-                                },],
+                                    },
+                                    include: [
+                                        {
+                                            model: Task,
+                                        }
+                                    ]
+                                },
+                                ],
                             }
                         ],
                     });
@@ -409,7 +415,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                         model: Estimation,
                                         where: {
                                             is_completed: true
+                                        },
+                                        include: [{
+                                            model: Task,
                                         }
+                                        ]
                                     },
                                 ],
                             }
@@ -575,9 +585,13 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                         model: Estimation,
                                         where: {
                                             is_completed: false
+                                        },
+                                        include: [{
+                                            model: Task,
                                         }
+                                        ]
                                     },
-                                ],
+                                    ],
                                 }
                             ],
                         });
@@ -617,7 +631,11 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                             model: Estimation,
                                             where: {
                                                 is_completed: true
+                                            },
+                                            include: [{
+                                                model: Task,
                                             }
+                                            ]
                                         },
                                     ],
                                 }
