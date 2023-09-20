@@ -37,7 +37,6 @@ router.post('/login', passport.authenticate('local', { session: false }), async 
             user 
         });
     } else {
-        console.log("Not an admin", user.type)
         return res.json({
             responseCode: 0,
             message: 'You are not an admin',

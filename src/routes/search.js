@@ -182,7 +182,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                 }
             }
             else {
-                
+
                 if (filter.includes('agency')) {
                     // find all agencies whose name this keyword matches with
                     const agencies = await Agency.findAll({
@@ -363,7 +363,15 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                         }
                                     },
                                     include: RequestTask
-                                }, Company, Estimation],
+                                }, {
+                                    model: Company,
+                                },
+                                {
+                                    model: Estimation,
+                                    where: {
+                                        is_completed: false
+                                    }
+                                },],
                             }
                         ],
                     });
@@ -374,6 +382,46 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                         }
                     }
                     result.request = requestJson.ReqAgencies
+                } catch (error) {
+                    console.error(error)
+                }
+
+                // find all archives whose name this keyword matches with
+                try {
+                    const archive = await Agency.findByPk(associatedId, {
+                        include: [
+                            {
+                                model: ReqAgency,
+                                include: [
+                                    {
+                                        model: Request,
+                                        where: {
+                                            name: {
+                                                [Op.iLike]: `%${keyword}%`
+                                            }
+                                        },
+                                        include: RequestTask
+                                    },
+                                    {
+                                        model: Company,
+                                    },
+                                    {
+                                        model: Estimation,
+                                        where: {
+                                            is_completed: true
+                                        }
+                                    },
+                                ],
+                            }
+                        ],
+                    });
+                    var archiveJson = archive.toJSON();
+                    for (var i = 0; i < archiveJson.ReqAgencies.length; i++) {
+                        for (var j = 0; j < archiveJson.ReqAgencies[i].Request.length; j++) {
+                            archiveJson.ReqAgencies[i].Request[j].url = '/archive'
+                        }
+                    }
+                    result.archive = archiveJson.ReqAgencies
                 } catch (error) {
                     console.error(error)
                 }
@@ -520,7 +568,16 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                                             }
                                         },
                                         include: RequestTask
-                                    }, Company, Estimation],
+                                    }, {
+                                        model: Company,
+                                    },
+                                    {
+                                        model: Estimation,
+                                        where: {
+                                            is_completed: false
+                                        }
+                                    },
+                                ],
                                 }
                             ],
                         });
@@ -531,6 +588,48 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req, re
                             }
                         }
                         result.request = requestJson.ReqAgencies
+                    } catch (error) {
+                        console.error(error)
+                    }
+                }
+
+                if (filter.includes('archive')) {
+                    // find all archives whose name this keyword matches with
+                    try {
+                        const archive = await Agency.findByPk(associatedId, {
+                            include: [
+                                {
+                                    model: ReqAgency,
+                                    include: [
+                                        {
+                                            model: Request,
+                                            where: {
+                                                name: {
+                                                    [Op.iLike]: `%${keyword}%`
+                                                }
+                                            },
+                                            include: RequestTask
+                                        },
+                                        {
+                                            model: Company,
+                                        },
+                                        {
+                                            model: Estimation,
+                                            where: {
+                                                is_completed: true
+                                            }
+                                        },
+                                    ],
+                                }
+                            ],
+                        });
+                        var archiveJson = archive.toJSON();
+                        for (var i = 0; i < archiveJson.ReqAgencies.length; i++) {
+                            for (var j = 0; j < archiveJson.ReqAgencies[i].Request.length; j++) {
+                                archiveJson.ReqAgencies[i].Request[j].url = '/archive'
+                            }
+                        }
+                        result.archive = archiveJson.ReqAgencies
                     } catch (error) {
                         console.error(error)
                     }
