@@ -1,4 +1,4 @@
-# cpm-backend
+# CommuniCreate Backend
 
 Backend for Client Production Management.
 
